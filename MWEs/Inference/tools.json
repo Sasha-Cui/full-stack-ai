@@ -1,0 +1,23 @@
+[
+    {
+        "type": "function",
+        "name": "random_number_generator",
+        "description": "Generate a random number in the range of two specified numbers.",
+        "strict": true,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "min": {
+                    "type": "number",
+                    "description": "The minimum number in the range"
+                },
+                "max": {
+                    "type": "number",
+                    "description": "The maximum number in the range"
+                }
+            },
+            "required": ["min", "max"],
+            "additionalProperties": false
+        }
+    }
+]
