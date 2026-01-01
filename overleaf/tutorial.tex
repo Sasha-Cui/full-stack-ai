@@ -1,0 +1,45 @@
+\documentclass[12pt]{article}
+\usepackage{Draft,SashaMacros}
+\usepackage{subfiles}
+\addbibresource{refs.bib}
+\addbibresource{lora_references.bib} 
+% ----------------- TITLE -----------------
+\title{\textbf{Tutorial: Becoming Full-Stack AI Researchers} \\ \vspace{0.5em} \large Working Draft}
+\author[1]{Authors}
+\affil[1]{Yale University}
+\date{Version: \ttt{\today}}
+% ----------------- BEGIN DOCUMENT -----------------
+\begin{document} \maketitle
+% \begin{abstract}
+  % This is the abstract.
+% \end{abstract}
+% \tableofcontents
+% ----------------- MAIN SECTIONS -----------------
+\newpage\subfile{sections/introduction}
+\newpage\subfile{sections/torch-jax-tf}
+\newpage\subfile{sections/ray}
+% \newpage\subfile{sections/example}
+% \newpage\subfile{sections/inference}
+% \newpage\subfile{sections/sft}
+% \newpage\subfile{sections/data}
+% \newpage\subfile{sections/eval}
+% \newpage\subfile{sections/rl}
+\newpage\subfile{sections/lora}
+
+\newpage\subfile{sections/conclusion}
+
+
+
+% ----------------- BIBLIOGRAPHY -----------------
+
+\printbibliography 
+\appendix
+\section*{Acknowledgments}
+% We thank members of trustworthy stats at Rutgers University for helpful comments and suggestions throughout the course of this work.
+
+% We thank ... for providing computational budgets for ...
+
+% \section{Proofs}
+% \section{Additional Tables}
+% \section{Additional Figures}
+\end{document}

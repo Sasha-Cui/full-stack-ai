@@ -1,0 +1,69 @@
+\usepackage{amsfonts,amssymb,amsmath,amsthm}
+% ----------------- GEOMETRY AND SPACING -----------------
+\usepackage{titlesec}
+\usepackage{microtype}        % better spacing
+\usepackage[margin=1.25in, top=1in]{geometry}
+\raggedbottom
+\usepackage{setspace}
+\onehalfspacing
+
+% ----------------- HEADER AND FOOTER -----------------
+\usepackage{titling}
+\usepackage{draftwatermark}
+\SetWatermarkText{WORKING DRAFT: DO NOT REDISTRIBUTE}
+\SetWatermarkScale{0.2}
+\SetWatermarkLightness{0.9}
+\interfootnotelinepenalty=10000
+
+% ----------------- SECTION FORMATTING -----------------
+\titleformat{\section}{\large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{1em}{}
+
+% For line numbers
+\usepackage{lineno}
+\linenumbers
+% ----------------- AUTHORSHIP -----------------
+\usepackage{authblk}
+
+\usepackage{enumitem}
+%\usepackage[framemethod=tikz, xcolor]{mdframed}
+%\newtheorem{theorem}{Theorem}[section]
+\newtheorem{theorem}{Theorem}
+\newtheorem{thm}[theorem]{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{lem}[theorem]{Lemma}
+
+\newtheorem{prop}[theorem]{Proposition}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\newtheorem{conj}[theorem]{Conjecture}
+\newtheorem{conjecture}[theorem]{Conjecture}
+
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{defn}[theorem]{Definition}
+\newtheorem{defin}[theorem]{Definition}
+
+\newtheorem{example}[theorem]{Example}
+\newtheorem{eg}[theorem]{Example}
+
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{cor}[theorem]{Corollary}
+
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{rem}[theorem]{Remark}
+\newtheorem{rmk}[theorem]{Remark}
+\newtheorem{rems}[theorem]{Remarks}
+
+\newtheorem{note}[theorem]{Notation}
+\newtheorem{assumption}[theorem]{Assumption}
+\newtheorem{fact}[theorem]{Fact}
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{case}{Case}
+
+% algorithm environment
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{algorithmicx}
+
+\usepackage[style=numeric,sorting=nyt,maxnames=3,minnames=3]{biblatex}

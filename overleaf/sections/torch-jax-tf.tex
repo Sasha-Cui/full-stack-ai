@@ -1,0 +1,111 @@
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
+\begin{document}
+\section{PyTorch, JAX, and TensorFlow}
+  \subsection{Motivation and Background}
+    Modern deep learning frameworks like TensorFlow, PyTorch, and JAX were created with the goals of
+    \begin{enumerate}
+      \item Efficient tensor (matrix) operations at scale, and
+      \item Automatic differentiation for optimization algorithms.
+    \end{enumerate}
+
+    Consider a loss function $L(\theta)$ depending on model parameters
+    $\theta \in \mathbb{R}^d$.  Training typically happens via the gradient descent algorithm
+    \begin{align*}
+      \theta_{t+1} &= \theta_t - \eta \nabla_\theta L(\theta_t),
+    \end{align*}
+    where $\eta$ is the learning rate.  Computing $\nabla_\theta L(\theta)$
+    by hand is infeasible for complex neural networks. These frameworks
+    automate it by building a \emph{computational graph} and applying
+    reverse-mode differentiation (backpropagation).
+    
+    They are written with GPU and TPU in mind for efficient parallel computation so that linera algebra operations and auto diff are executed faster than can be done on CPUs with numpy. 
+
+    
+  \subsection{Historical Context and Ecosystem}
+    In 2015, Google introduced its first large-scale public framework, TensorFlow.  In 2018, Google introduced JAX, a functional, composable approach with transformations like \texttt{jit}, \texttt{grad}, and \texttt{pmap}, optimised for TPUs.  TensorFlow was once popular but is now on its way to depreciation.
+
+    Meanwhile, in 2016, Facebook introduced PyTorch, which became the default for most academic work.  Rumours have it that nowadays, Google and xAI work mostly with JAX, OpenAI and Meta/Facebook work mostly with PyTorch, and Anthropic uses both. 
+    
+  \subsection{Strengths and Hardware Compatibility}
+    \textbf{PyTorch.} Strengths: Vast ecosystem (Hugging Face, PyTorch Lightning) and greater community support. GPU-first.
+    
+    \textbf{JAX.} Strengths: clean functional abstractions, XLA compiler, flexibility in creating customised kernels.  TPU-first.
+    
+  \subsection{Core Programming Model and Syntax}
+    Here is a simple example written in PyTorch and in Jax.  With PyTorch, we can do
+    \begin{verbatim}
+    import torch
+    
+    x = torch.tensor([2.0], requires_grad=True)
+    y = x**2 + 3*x + 1
+    y.backward()   # compute dy/dx
+    print(x.grad)  # prints tensor([7.])
+    \end{verbatim}
+    
+    The gradient follows
+    \begin{align*}
+      y &= x^2 + 3x + 1, \\
+      \frac{dy}{dx} &= 2x + 3 = 7 \quad \text{at } x=2.
+    \end{align*}
+    
+    Equivalently, in JAX, we can do
+    \begin{verbatim}
+    import jax
+    import jax.numpy as jnp
+    
+    def f(x):
+      return x**2 + 3*x + 1
+    
+    grad_f = jax.grad(f)
+    print(grad_f(2.0))  # prints 7.0
+    \end{verbatim}
+    
+  \subsection{Ecosystem and Tooling}
+    Each framework is surrounded by a rich ecosystem of higher-level libraries.
+    \begin{itemize}
+      \item \textbf{PyTorch:} PyTorch Lightning provides structured training
+        loops and experiment organization. The Hugging Face Transformers
+        library, while framework-agnostic, has its deepest integration
+        with PyTorch.
+      \item \textbf{JAX:} Flax and Haiku are neural network libraries built
+        specifically for JAX, offering functional-style model
+        definitions.
+    \end{itemize}
+
+    For distributed and large-scale training, each framework offers its own
+    primitives.
+    \begin{itemize}
+      \item \textbf{PyTorch:} the \texttt{torch.distributed} package
+        implements data-parallel and model-parallel training across
+        multiple GPUs and nodes.
+      \item \textbf{JAX:} the \texttt{pmap} transformation allows parallel
+        execution of functions across multiple devices (TPUs or GPUs),
+        with automatic sharding of arrays.
+    \end{itemize}
+
+    For the compatibility with the computational hardware,
+    \begin{itemize}
+        \item \textbf{PyTorch:} Built directly on top of CUDA/cuDNN for GPU acceleration.
+        \item \textbf{JAX:} Relies on XLA, which in turn generates CUDA kernels when targeting NVIDIA GPUs.  Compatible with both GPUs and TUPs.
+    \end{itemize}
+
+    Finally, orchestration frameworks such as \textbf{Ray} integrate with all three, providing a higher-level interface for scaling training jobs beyond a single machine.
+
+    \subsection{Installation and Getting Started}
+    Installation depends on hardware
+    \begin{itemize}
+      \item PyTorch: \verb|pip install torch torchvision torchaudio|.
+            Select CUDA version if using GPUs.
+      \item JAX: \verb|pip install jax jaxlib|, or TPU runtime via Colab/Cloud.
+    \end{itemize}
+    
+    Typical pitfalls include
+    \begin{itemize}
+      \item CUDA version mismatches between PyTorch and system
+            drivers.
+      \item Installing JAX with the wrong CUDA wheel.
+      \item Mixing conda and pip environments without care.
+    \end{itemize}
+
+\end{document}

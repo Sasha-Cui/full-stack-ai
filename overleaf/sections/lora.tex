@@ -1,0 +1,197 @@
+% LoRA Section - to be included in main tutorial document as Section 4
+\section{Low-Rank Adaptation (LoRA)}
+\label{sec:lora}
+
+\subsection{Motivation: Why LoRA?}
+\label{sec:lora:motivation}
+
+
+\textbf{The Problem}: Modern large language models (LLMs) have trillions of parameters pretrained on massive datasets. Post-training typically uses much smaller datasets focused on specific domains. It seems wasteful to update trillions of parameters for gigabit/megabit training data.\\
+\textbf{The Solution}: Parameter-Efficient Fine-Tuning (PEFT) adjusts large networks by updating only a small subset of parameters~\cite{houlsby2019parameter}.\\
+\textbf{Key Insight}: Post-training often requires much less capacity than pretraining, so we can represent updates efficiently with low-rank matrices.
+
+\subsection{LoRA Mathematical Foundation}
+\label{sec:lora:math}
+
+\textbf{Core Equation}: The fundamental LoRA update is expressed as:
+\begin{equation}
+W' = W + \gamma BA
+\label{eq:lora-core}
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item $W \in \mathbb{R}^{N \times N}$: Original frozen weight matrix
+    \item $A \in \mathbb{R}^{r \times N}$: Low-rank adapter matrix (input projection)
+    \item $B \in \mathbb{R}^{N \times r}$: Low-rank adapter matrix (output projection)
+    \item $\gamma = \alpha/r$: Scaling factor (maintains learning rate stability across ranks)
+    \item $r \ll N$: Rank of the adaptation (typically 8--64)
+\end{itemize}
+
+\textbf{Intuition}: Instead of updating the full $N^2$ parameters in $W$, we learn a low-rank approximation of the update using only $2Nr$ parameters. This is the key insight behind LoRA~\cite{hu2021lora}.
+
+\subsection{LoRA Advantages}
+\label{sec:lora:advantages}
+
+\subsubsection{Multi-tenant Serving}
+LoRA enables efficient multi-tenant serving by keeping original weights unchanged while storing multiple adapters in memory. This allows sampling from different model versions simultaneously in batched inference. Modern inference engines such as vLLM~\cite{kwon2023efficient} and SGLang~\cite{zheng2023efficiently} support this natively.
+
+\subsubsection{Memory Efficiency}
+\begin{itemize}
+    \item \textbf{Training}: No optimizer state for base weights (often stored in higher precision)
+    \item \textbf{Storage}: Adapters are much smaller than full model checkpoints
+    \item \textbf{Transfer}: Fast loading/transfer of small adapter files
+\end{itemize}
+
+\subsubsection{Compute Efficiency}
+\begin{itemize}
+    \item \textbf{FLOPs per matrix}: Approximately $2N^2 + 6Nr$ vs $3N^2$ for full fine-tuning
+    \item \textbf{Ratio}: Approximately 2/3 the compute when $r \ll N$
+    \item \textbf{Scaling}: More efficient as model size increases
+\end{itemize}
+
+\subsection{Can LoRA Match Full Fine-Tuning Performance?}
+\label{sec:lora:performance}
+
+\textbf{Answer}: Yes, under specific conditions.
+
+\subsubsection{The Key Question}
+Can LoRA match the performance of full fine-tuning, and if so, under which conditions? This question has been comprehensively investigated by Schulman et al.~\cite{schulman2025lora}.
+
+\subsubsection{Conditions for Equal Performance}
+
+\textbf{When LoRA Matches Full Fine-Tuning:}
+\begin{itemize}
+    \item \textbf{Dataset size}: Small-to-medium post-training datasets (typical instruction-tuning/reasoning)
+    \item \textbf{Rank}: Sufficient rank to capture essential information
+    \item \textbf{Layer coverage}: Apply LoRA to all weight matrices (especially MLP and MoE layers)
+    \item \textbf{Hyperparameters}: Proper learning rate scaling with $\gamma = \alpha/r$
+\end{itemize}
+\textbf{When LoRA Underperforms:}
+\begin{itemize}
+    \item \textbf{Capacity exceeded}: When dataset size exceeds LoRA parameter capacity
+    \item \textbf{Attention-only}: Applying LoRA only to attention layers (even with matched parameter count)
+    \item \textbf{Very large datasets}: Settings resembling pretraining with massive data
+\end{itemize}
+
+\subsection{Experimental Setup and Results}
+\label{sec:lora:experiments}
+
+\subsubsection{Methodology}
+The experimental methodology follows the approach of Schulman et al.~\cite{schulman2025lora}:
+\begin{itemize}
+    \item \textbf{Models}: Llama 3 series, Qwen3 (including MoE)
+    \item \textbf{Datasets}: Tulu3 (instruction-following), OpenThoughts3 (reasoning)
+    \item \textbf{Rank sweep}: 1 to 512 across 3 orders of magnitude
+    \item \textbf{Learning rate}: Swept for each condition to eliminate LR confounds
+    \item \textbf{Metrics}: Log loss (not sampling-based) for clean scaling laws
+\end{itemize}
+
+\subsubsection{Key Findings}
+
+\textbf{Learning Curves by Rank}: High-rank LoRA ($r=64$--512) overlaps with full fine-tuning, while low-rank LoRA ($r=1$--8) underperforms when capacity is exceeded. This pattern is consistent across different model sizes and datasets.\\
+\textbf{Batch Size Sensitivity}: LoRA is less tolerant of large batch sizes than full fine-tuning. This penalty is not mitigated by increasing rank and is a property of the product-of-matrices parametrization.\\
+\textbf{Layer Coverage Impact}: Attention-only LoRA underperforms even with matched parameters. Full coverage (MLP + attention) performs significantly better. MoE layers are particularly important for LoRA effectiveness.\\
+\textbf{Learning Rate Impact}: The optimal learning rate is approximately 10 times higher for LoRA than for full fine-tuning~\cite{schulman2025lora}.
+
+\subsubsection{Compute Efficiency Analysis}
+\begin{itemize}
+    \item \textbf{Theoretical}: LoRA uses approximately 2/3 the FLOPs of full fine-tuning per weight matrix
+    \item \textbf{Practical}: Often faster overall due to reduced memory bandwidth
+    \item \textbf{Scaling}: Advantage increases with model size
+\end{itemize}
+
+\subsection{Experimental Results on PBMC3k Dataset}
+\label{sec:lora:pbmc-results}
+
+Our experiments on the PBMC3k single-cell RNA sequencing dataset~\cite{zheng2017massively}, which contains approximately 3,000 peripheral blood mononuclear cells with gene expression measurements for approximately 20,000 genes, confirm the findings of Schulman et al.~\cite{schulman2025lora}:
+
+\textbf{LoRA Full Coverage Matches Full Fine-Tuning}:
+\begin{itemize}
+    \item LoRA Full achieved accuracy within 1\% of full fine-tuning
+    \item Used only approximately 10\% of trainable parameters
+    \item Confirms the main theoretical finding
+\end{itemize}
+
+\textbf{Attention-Only LoRA Underperforms}:
+\begin{itemize}
+    \item LoRA Attention-Only achieved lower accuracy than full coverage
+    \item Even with similar parameter counts, layer coverage matters
+    \item Critical insight: Apply LoRA to \textbf{all layers}, not just attention
+\end{itemize}
+
+\textbf{Computational Efficiency}:
+\begin{itemize}
+    \item \textbf{Parameters}: LoRA trains 10× fewer parameters than full fine-tuning
+    \item \textbf{Speed}: LoRA is approximately 1.5--2× faster in training time
+    \item \textbf{Memory}: Significantly lower memory footprint (no optimizer state for frozen weights)
+\end{itemize}
+
+\textbf{Hyperparameter Sensitivity}:
+\begin{itemize}
+    \item \textbf{Rank}: Higher ranks ($r=16, 32$) approach full fine-tuning performance; very low ranks ($r=2$) show capacity limits
+    \item \textbf{Learning Rate}: LoRA is sensitive to learning rate and typically requires 5--10× higher learning rates
+    \item \textbf{Batch Size}: Standard batch sizes work well for LoRA
+\end{itemize}
+
+\subsection{Discussion and Key Takeaways}
+\label{sec:lora:discussion}
+
+\subsubsection{The ``Low-Regret Regime''}
+Schulman et al.~\cite{schulman2025lora} identify a regime where LoRA performs similarly to full fine-tuning. This regime:
+\begin{itemize}
+    \item Covers most post-training scenarios
+    \item Enables efficient fine-tuning in many applications
+    \item Makes powerful adaptation accessible with fewer resources
+\end{itemize}
+
+\subsubsection{Practical Implications}
+\begin{itemize}
+    \item \textbf{When to use LoRA}: Most post-training scenarios, especially with limited compute
+    \item \textbf{When to use full fine-tuning}: Very large datasets, when maximum performance is critical
+    \item \textbf{Best practices}: Apply to all layers, use sufficient rank, proper learning rate scaling
+\end{itemize}
+
+\subsection{Best Practices}
+\label{sec:lora:best-practices}
+
+Based on theoretical understanding and empirical validation:
+
+\textbf{Implementation Guidelines}:
+\begin{itemize}
+    \item Apply LoRA to all transformer layers (attention + MLP)
+    \item Start with $r \in [16, 32]$ for medium-sized models
+    \item Set scaling factor $\alpha = 2r$ as default
+    \item Use learning rates 5--10× higher than for full fine-tuning
+    \item Monitor validation performance to detect capacity limitations
+\end{itemize}
+
+\textbf{When to Use LoRA}:
+\begin{itemize}
+    \item Post-training with limited computational resources
+    \item Multi-task serving environments
+    \item Rapid experimentation and iteration
+    \item Storage and transfer constraints
+\end{itemize}
+
+\textbf{When to Use Full Fine-Tuning}:
+\begin{itemize}
+    \item Very large datasets approaching pretraining scale
+    \item Maximum performance critical regardless of cost
+    \item Settings where low-rank assumption may not hold
+\end{itemize}
+
+\subsection{Conclusion}
+\label{sec:lora:conclusion}
+
+Low-Rank Adaptation (LoRA) provides an effective and efficient approach to fine-tuning large pretrained models. Our analysis and experiments confirm that:
+
+\begin{enumerate}
+    \item LoRA with full layer coverage matches full fine-tuning performance in the ``low-regret regime''
+    \item Layer coverage is critical---applying LoRA only to attention layers underperforms
+    \item LoRA achieves 90--99\% parameter reduction while maintaining performance
+    \item Higher learning rates (5--10× ) are required compared to full fine-tuning
+    \item The approach generalizes across domains from NLP to computational biology
+\end{enumerate}
+
+LoRA has become a foundational technique in modern deep learning, enabling efficient adaptation of large models while maintaining performance comparable to full fine-tuning.

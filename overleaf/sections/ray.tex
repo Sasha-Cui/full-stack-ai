@@ -1,0 +1,108 @@
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
+\begin{document}
+\section{Ray: A Distributed Computing Framework}
+  \subsection{Motivation and Background}
+    As compute and memory requirements of LLMs keep increasing, single-server settings can no longer accommodate their development, training, and serving needs.  
+    Ray~\cite{raypaper} addresses this challenge by enabling fast and easy application scaling to distributed environments. 
+    It provides scalable libraries to support the complete life-cycle of ML applications, pythonic primitives for intuitive development, and integration with existing tools and infrastructure like Kubernetes, AWS, and Azure.
+    
+    
+    At its core, Ray utilizes three main abstractions:
+    \begin{itemize}
+      \item \textbf{Tasks (remote functions):} A Python function decorated with \texttt{@ray.remote}. 
+      Each invocation launches a stateless parallel computation executed on any available CPU or GPU.
+      \item \textbf{Actors:} A Python class decorated with \texttt{@ray.remote} becomes an actor.  Unlike tasks, actors are \emph{stateful}---they live on a worker process and can preserve variables across multiple method calls.
+      \item \textbf{Worker Node:} Under the hood, Ray maintains a pool of worker nodes, which consist of multiple physical processes. Each node hosts a \emph{raylet} process, which manages the node's shared resources, and one or more worker processes responsible for task submission and execution.
+    \end{itemize}
+    
+    Ray's cluster hosts the head node, which contains the \emph{Global Control Store}(GCS), a server managing cluster-level metadata and operations like scheduling.
+    For fault tolerance, Ray introduced an ownership model, which can be combined with lineage reconstruction to recover lost objects in the event of a node's failure. 
+    These components contribute to Ray's core principles for API simplicity and generality, while enabling system performance and reliability.
+    More information about Ray's architecture can be found in the designated architecture whitepaper~\cite{rayarchitecture}.
+
+    
+
+    
+    \subsection{Historical Context and Ecosystem}
+    Researchers at UC Berkeley’s RISELab introduced Ray at 2018~\cite{raypaper} and it has since
+    evolved into a widely adopted ecosystem for scaling AI and Python workloads. 
+    Today, Ray is maintained by Anyscale and supports a range of libraries for specialized tasks:
+    \begin{itemize}
+      \item \textbf{Ray RLlib}: High-Performance RL
+      \item \textbf{Ray Serve}: Scalable \& Programmable Model Serving.
+      \item \textbf{Ray Tune}: Scalable Hyperparameter Tuning.
+      \item \textbf{Ray Train}: Distributed Model Training
+      \item \textbf{Ray Data}: Distributed Data Processing
+    \end{itemize}
+  
+  \subsection{Core Programming Model and Syntax}
+    The minimal Ray program utilizes standard Python. 
+    To enable Ray, we import and initialize it:
+    \begin{verbatim}
+    import ray
+    ray.init()  # connect to cluster or start locally
+    \end{verbatim}
+    
+    \paragraph{Remote functions (tasks).} Decorate a Python function with \texttt{@ray.remote} to execute it as a parallel task:
+    \begin{verbatim}
+    @ray.remote
+    def square(x):
+      return x * x
+    
+    futures = [square.remote(i) for i in range(4)]
+    print(ray.get(futures))  # [0, 1, 4, 9]
+    \end{verbatim}
+    
+    \paragraph{Actors.} Use actors to encapsulate state across multiple method calls. An actor
+    is a class decorated with \texttt{@ray.remote} and runs persistently on
+    a worker process:
+    \begin{verbatim}
+    @ray.remote
+    class Counter:
+      def __init__(self):
+        self.value = 0
+      def increment(self):
+        self.value += 1
+        return self.value
+    
+    counter = Counter.remote()
+    print(ray.get(counter.increment.remote()))  # 1
+    \end{verbatim}
+    
+    \paragraph{Workers.} Behind the scenes, Ray launches a pool of worker processes (Python
+    interpreters). 
+    Tasks and actors are scheduled onto these workers by the
+    Ray runtime. 
+    While you rarely interact with workers directly, you can
+    control resource allocation (e.g., CPUs, GPUs) when defining tasks or actors:
+    \begin{verbatim}
+    @ray.remote(num_cpus=2)
+    def heavy_task(x):
+      return x ** 2
+    \end{verbatim}
+    Here, Ray will schedule \texttt{heavy\_task} only on workers with at least two available CPUs.
+
+    \subsection{Strengths, Weaknesses, and Integration}
+    
+    \paragraph{Strengths.} The Python-first design of Ray lowers the barrier for distributed computing. 
+    Its modular libraries (Tune, RLlib, Serve) cover end-to-end machine learning workflows. 
+    It integrates naturally with PyTorch, TensorFlow, and JAX.
+    
+    \paragraph{Weaknesses.} Ray introduces runtime overhead for small-scale tasks, and cluster management may require careful tuning for performance.  
+    It is best suited for medium to large-scale AI applications in distributed environments rather than fine-grained parallelism in single-server settings.
+    
+    \subsection{Installation and Getting Started}
+    Ray can be installed with:
+    \begin{verbatim}
+    pip install ray
+    \end{verbatim}
+    
+    Launching Ray locally requires no configuration. To connect to a
+    multi-node cluster, one can start the head node with
+    \verb|ray start --head| and join worker nodes with
+    \verb|ray start --address='...'|.
+    
+    Ray can also be combined with orchestration systems such as Kubernetes
+    or Slurm for deployment on HPC or cloud environments.
+\end{document}

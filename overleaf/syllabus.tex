@@ -1,0 +1,116 @@
+\documentclass[12pt]{article}
+\usepackage{Draft,SashaMacros}
+\addbibresource{refs.bib}
+% ----------------- TITLE -----------------
+\title{\textbf{Becoming Full-Stack AI Researchers} \\ \vspace{0.5em} \large A Hands-On Working Group}
+\author[1]{\textbf{Sasha Cui}\footnote{\texttt{sasha.cui@yale.edu}}}
+\author[1]{{Quan Le}\footnote{\texttt{quan.le@yale.edu}}}
+\author[2]{{Alexander Mader}\footnote{\texttt{alexander.mader@yale.edu}}}
+\author[3]{{Will Sanok Dufallo}\footnote{\texttt{will.sanokdufallo@yale.edu}}}
+\affil[1]{Department of Statistics \& Data Science\\Yale University}
+\affil[2]{Department of Physics\\Yale University}
+\affil[3]{Department of Philosophy\\Yale University}
+\date{Version: \ttt{\today}}
+% ----------------- BEGIN DOCUMENT -----------------
+\begin{document} \maketitle
+% \begin{abstract}
+%   This is the abstract.
+% \end{abstract}
+% \tableofcontents
+% ----------------- MAIN SECTIONS -----------------
+
+\section{Overview \& Goals}
+The \textbf{``Becoming Full-Stack AI Researchers''} working group covers the essential packages, frameworks, and tools for AI development.  The main goals follow.
+\begin{itemize}
+    \item Equip Yale researchers with the skills to go beyond narrow, single-aspect AI work toward holistic, end-to-end AI project capability.
+    \item Build reusable on-boarding materials for any Yale members interested in doing AI research.
+    \item Create an community of Explorers and Builders in AI.
+\end{itemize}
+The tangible outputs include a \textbf{GitHub repository} containing minimal working examples (MWEs), demos, and slides and a \textbf{tutorial paper} co-authored by participants of the \emph{Builder Track} (see below)
+
+\section{Modules}
+The working group will be held as mutually independent \textbf{modular sessions}, each approximately 2 hours.  \texttt{slurm}, \texttt{conda}, \texttt{bash}, and \texttt{git} commands will be introduced as needed.  A tentative list of topics follow. 
+\subsection{LLM as Black Boxes 1: Datasets, Models, and Benchmarking}
+\begin{itemize}
+    \item Loading and saving sharded \textbf{Hugging Face} Transformer model checkpoints for reproducibility and sharing.
+    \item Quantisation with \textbf{BitsandBytes}.
+    \item Storing and loading datasets in efficient formats (jsonline, Parquet via \textbf{PyArrow}/\textbf{Hugging Face Datasets}).
+    \item Benchmarking harness for evaluating model performance with \textbf{lm-eval} and \textbf{inspect-ai}.
+    \item Model evaluation with \textbf{Terminal Bench}.
+\end{itemize}
+
+\subsection{LLM as Black Boxes 2: Inference, Evaluation, Deployment, and Serving}
+\begin{itemize}
+    \item Running inference via \textbf{OpenRouter}.
+    \item Serving with \textbf{vLLM} (paged attention).  % (Emphasis on use and effect of hyperparameters, such as gpu_memory_utilization, max_model_len, max_num_batched_tokens, max_num_seqs)
+    \item Deploying models as web endpoints using \textbf{FastAPI}.
+    \item Prompt engineering with optimisers such as \textbf{GEPA}.
+    \item Tools Use with \textbf{MCP}, \textbf{A2A}, and \textbf{Function Calling}.
+    \item Activation Steering,  \textbf{TransformerLens}, \textbf{nnsight}.
+\end{itemize}
+
+\subsection{Post Training LLMs 1: Supervised Fine-Tuning (SFT)}
+\begin{itemize}
+    \item Parameter-efficient fine-tuning with LoRA and QLoRA via \textbf{PEFT}.
+    \item Training orchestration with \textbf{Lightning}.
+\end{itemize}
+
+\subsection{Post Training LLMs 2: Reinforcement Learning (RL)}
+\begin{itemize}
+    \item Containerization with \textbf{Docker} (or \textbf{Apptainer}).
+    \item Reinforcement learning with \textbf{VERL}.
+    \item Distributed training with \textbf{Ray}, \textbf{JAX}.
+    \item Experiment tracking using \textbf{Weights \& Biases}.
+\end{itemize}
+
+\subsection{Agentic LLMs 1: Software Agents and Hardware Agents}
+\begin{itemize}
+    \item Building multi-step reasoning workflows with \textbf{LangChain} and \textbf{ReAct}.
+    \item MemGPT, AutoGPT, MetaGPT. 
+    \item Vision-Language-Action frameworks with \textbf{OpenVLA}.
+\end{itemize}
+
+\subsection{Agentic LLMs 2: End-to-End Project Presentation}
+\begin{itemize}
+    \item Building a complete pipeline: dataset preparation $\rightarrow$ model training $\rightarrow$ checkpoint saving $\rightarrow$ deployment.
+    \item Scaling and debugging on Misha HPC.
+\end{itemize}
+
+
+\section{Prerequisites \& Participation Tracks}
+This course series is designed for students, postdocs, and faculties who are interested in broadening their AI engineering capabilities.  No prior experience with any particular frameworks is needed but \emph{one needs to be fluent in Python.}
+
+There are two ways to participate. 
+\begin{enumerate}
+    \item \emph{Builder Track} (up to 15 participants).  For some frameworks of your choice, you will
+    \begin{enumerate}
+    \item Contribute to a shared GitHub repository by building both minimal working examples (MWEs) and expert use-case demonstrations  (e.g., customisations, advanced features, or applied mini-projects).
+    \item Prepare slides and co-author the respective sections of a joint tutorial paper that will be a product of this working group. 
+    \item Introduce the frameworks during the meetings. 
+    \item Gain full access to dedicated GPU instances on the Misha Cluster for experimentation with maximum flexibility. 
+\end{enumerate}
+    \item \emph{Explorer Track} (up to 100 participants).  For packages/frameworks of your interest, you will    
+    \begin{enumerate}
+    \item Attend the presentation sessions
+    \item Experiment with the introduced frameworks and potentially adapt them into your own projects.
+\end{enumerate}
+\end{enumerate}
+
+\section{Venue, Timeline, \& Enrolment}
+\begin{itemize}
+    \item \textbf{Venue:} Misha High Performance Computing Cluster and in-person at \textbf{100 College Street}.
+    \item \textbf{Timeline:} We will begin in early Sept and meet fortnightly.
+    \item \textbf{Enrolment:} We expect up to 15 \emph{Builders Track} participants and up to 100 \emph{Explorers Track} participants.
+\end{itemize}
+
+\section{Acknowledgments}
+The GPUs and classrooms are generously provided by the Wu Tsai Institute at Yale University.  We thank Ping Luo, John Lafferty, Linjun Zhang, Anurag Kashyap, Theo Saarinen, and Yuxuan Zhu for helpful comments and suggestions.  
+
+% ----------------- BIBLIOGRAPHY -----------------
+% \printbibliography 
+\appendix
+
+% \section{Proofs}
+% \section{Additional Tables}
+% \section{Additional Figures}
+\end{document}

@@ -1,0 +1,464 @@
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,graphicx,xcolor,bm,bbm}
+\usepackage{booktabs}         % tables
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage[capitalise]{cleveref}
+\usepackage{lipsum}
+
+% ******************************************************************
+% *** Fonts and Graphics **********************************************
+% \usepackage{eufrak}		% preloaded by amsfonts(?) above
+\newcommand\eurfamily{\usefont{U}{eur}{m}{n}}	% Fancy script font
+\DeclareTextFontCommand{\texteur}{\eurfamily}
+\usepackage{amscd}		% for commutative diagrams
+\usepackage{graphicx}           % replaces epsfig
+\usepackage{color}   %May be necessary if you want to color links
+
+\usepackage{verbatim}
+\usepackage{relsize}
+
+% 			*** FONTS  ***
+\newcommand{\trm}{\textrm}% text roman		\trm{Rush}
+\newcommand{\tbf}{\textbf}% text bold		\tbf{Rush}
+\newcommand{\tit}{\textit}% text italic		\tit{Rush}
+\newcommand{\tsl}{\textsl}% text slanted	  etc.
+\newcommand{\ttt}{\texttt}% text typewriter
+\newcommand{\tsc}{\textsc}% text small caps
+\newcommand{\tsf}{\textsf}% text sans serif
+\newcommand{\tup}{\textup}% text upright
+\newcommand{\mrm}{\mathrm}% math roman
+\newcommand{\mbf}{\mathbf}% math bold
+% \renewcommand{\mit}{\mathit}% math italic	% undefined by amsart
+% \newcommand{\mit}{\mathit}% math italic
+\newcommand{\msf}{\mathsf}% math sans serif
+\newcommand{\mtt}{\mathtt}% math typewriter
+\usepackage{mathrsfs}
+\newcommand{\scr}{\mathscr}			% Math Script - caps only
+\newcommand{\Cal}{\mathcal}			% Calligraphic - caps only
+\newcommand{\BB}{\mathbb}			% Blackboard Bold - caps only
+\renewcommand{\frak}{\mathfrak}			% Math Fraktur (= Gothic; % the old \frak is obsolete so reuse its name
+\newcommand{\BM}{\boldsymbol}			% Bold math symbol Ital
+\DeclareMathAlphabet{\BMi}{OT1}{cmm}{b}{it}	% Bold math italic
+\newcommand{\fancy}{\texteur}			% Fancy script
+%	\Cal{A}		Calligraphic  A
+%	\BB{C}		Blackbord Bold  C
+%	\frak{g}		Fraktur (= Gothic) g
+%	\BM{\alpha}	bold Greek alpha
+%	\BM{\Cal{A}}	bold Calligraphic  A
+%	\fancy{\Large Nice}	Large size fancy:  Nice	      ($  $ not needed)
+%	\BM{R}		bold math italic R
+%	{\mathversion{bold} u'' = f(x)}	  prints formula bold
+
+% \usepackage[pagebackref=true]{hyperref}
+% \hypersetup{
+% %    colorlinks=true, %set true if you want colored links
+%     linktoc=all,     %set to all if you want both sections and subsections linked
+%     linkcolor=blue,  %choose some color if you want links to stand out
+% } %\usepackage[active]{srcltx}     % This must be the LAST package
+
+
+% 			*** COUNTERES ***
+
+\newcounter{bean}
+\newcounter{bacon}
+\newcounter{butter}
+
+
+% 			*** MACROS ***
+%\cA for cal A;  \sA for \script S; \fA or \fa for fraktur; \bA for blackboard bold; \tx for tilde{x}; \1 for the indicator function
+\let\uglyepsilon\epsilon
+\let\uglyphi\phi
+\let\epsilon\varepsilon
+\let\phi\varphi
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\cC}{\mathcal{C}}
+\newcommand{\cD}{\mathcal{D}}
+\newcommand{\cE}{\mathcal{E}}
+\newcommand{\cF}{\mathcal{F}}
+\newcommand{\cG}{\mathcal{G}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cI}{\mathcal{I}}
+\newcommand{\cJ}{\mathcal{J}}
+\newcommand{\cK}{\mathcal{K}}
+\newcommand{\cL}{\mathcal{L}}
+\newcommand{\cM}{\mathcal{M}}
+\newcommand{\cN}{\mathcal{N}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\cP}{\mathcal{P}}
+\newcommand{\cQ}{\mathcal{Q}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cT}{\mathcal{T}}
+\newcommand{\cU}{\mathcal{U}}
+\newcommand{\cV}{\mathcal{V}}
+\newcommand{\cW}{\mathcal{W}}
+\newcommand{\cX}{\mathcal{X}}
+\newcommand{\cY}{\mathcal{Y}}
+\newcommand{\cZ}{\mathcal{Z}}
+
+\newcommand{\bq}{\mathbf{q}}
+\newcommand{\bw}{\mathbf{w}}
+\newcommand{\be}{\mathbf{e}}
+\newcommand{\br}{\mathbf{r}}
+\newcommand{\bt}{\mathbf{t}}
+\newcommand{\by}{\mathbf{y}}
+\newcommand{\bu}{\mathbf{u}}
+\newcommand{\bi}{\mathbf{i}}
+\newcommand{\bo}{\mathbf{o}}
+\newcommand{\bp}{\mathbf{p}}
+\newcommand{\ba}{\mathbf{a}}
+\newcommand{\bs}{\mathbf{s}}
+\newcommand{\bd}{\mathbf{d}}
+\renewcommand{\bf}{\mathbf{f}}
+\newcommand{\bg}{\mathbf{g}}
+\newcommand{\bh}{\mathbf{h}}
+\newcommand{\bj}{\mathbf{j}}
+\newcommand{\bk}{\mathbf{k}}
+\newcommand{\bl}{\mathbf{l}}
+\newcommand{\bz}{\mathbf{z}}
+\newcommand{\bx}{\mathbf{x}}
+\newcommand{\bc}{\mathbf{c}}
+\newcommand{\bv}{\mathbf{v}}
+\newcommand{\bb}{\mathbf{b}}
+\newcommand{\bn}{\mathbf{n}}
+% \newcommand{\bm}{\mathbf{m}}
+
+\newcommand{\bA}{\mathbb{A}}
+\newcommand{\bB}{\mathbb{B}}
+\newcommand{\bC}{\mathbb{C}}
+\newcommand{\bD}{\mathbb{D}}
+\newcommand{\bE}{\mathbb{E}}
+\newcommand{\bF}{\mathbb{F}}
+\newcommand{\bG}{\mathbb{G}}
+\newcommand{\bH}{\mathbb{H}}
+\newcommand{\bI}{\mathbb{I}}
+\newcommand{\bJ}{\mathbb{J}}
+\newcommand{\bK}{\mathbb{K}}
+\newcommand{\bL}{\mathbb{L}}
+\newcommand{\bM}{\mathbb{M}}
+\newcommand{\bN}{\mathbb{N}}
+\newcommand{\bO}{\mathbb{O}}
+\newcommand{\bP}{\mathbb{P}}
+\newcommand{\bQ}{\mathbb{Q}}
+\newcommand{\bR}{\mathbb{R}}
+\newcommand{\bS}{\mathbb{S}}
+\newcommand{\bT}{\mathbb{T}}
+\newcommand{\bU}{\mathbb{U}}
+\newcommand{\bV}{\mathbb{V}}
+\newcommand{\bW}{\mathbb{W}}
+\newcommand{\bX}{\mathbb{X}}
+\newcommand{\bY}{\mathbb{Y}}
+\newcommand{\bZ}{\mathbb{Z}}
+\newcommand{\sA}{\mathscr{A}}
+\newcommand{\sB}{\mathscr{B}}
+\newcommand{\sC}{\mathscr{C}}
+\newcommand{\sD}{\mathscr{D}}
+\newcommand{\sE}{\mathscr{E}}
+\newcommand{\sF}{\mathscr{F}}
+\newcommand{\sG}{\mathscr{G}}
+\newcommand{\sH}{\mathscr{H}}
+\newcommand{\sI}{\mathscr{I}}
+\newcommand{\sJ}{\mathscr{J}}
+\newcommand{\sK}{\mathscr{K}}
+\newcommand{\sL}{\mathscr{L}}
+\newcommand{\sM}{\mathscr{M}}
+\newcommand{\sN}{\mathscr{N}}
+\newcommand{\sO}{\mathscr{O}}
+\newcommand{\sP}{\mathscr{P}}
+\newcommand{\sQ}{\mathscr{Q}}
+\newcommand{\sR}{\mathscr{R}}
+\newcommand{\sS}{\mathscr{S}}
+\newcommand{\sT}{\mathscr{T}}
+\newcommand{\sU}{\mathscr{U}}
+\newcommand{\sV}{\mathscr{V}}
+\newcommand{\sW}{\mathscr{W}}
+\newcommand{\sX}{\mathscr{X}}
+\newcommand{\sY}{\mathscr{Y}}
+\newcommand{\sZ}{\mathscr{Z}}
+\newcommand{\fA}{\frak{A}}
+\newcommand{\fB}{\frak{B}}
+\newcommand{\fC}{\frak{C}}
+\newcommand{\fD}{\frak{D}}
+\newcommand{\fE}{\frak{E}}
+\newcommand{\fF}{\frak{F}}
+\newcommand{\fG}{\frak{G}}
+\newcommand{\fH}{\frak{H}}
+\newcommand{\fI}{\frak{I}}
+\newcommand{\fJ}{\frak{J}}
+\newcommand{\fK}{\frak{K}}
+\newcommand{\fL}{\frak{L}}
+\newcommand{\fM}{\frak{M}}
+\newcommand{\fN}{\frak{N}}
+\newcommand{\fO}{\frak{O}}
+\newcommand{\fP}{\frak{P}}
+\newcommand{\fQ}{\frak{Q}}
+\newcommand{\fR}{\frak{R}}
+\newcommand{\fS}{\frak{S}}
+\newcommand{\fT}{\frak{T}}
+\newcommand{\fU}{\frak{U}}
+\newcommand{\fV}{\frak{V}}
+\newcommand{\fW}{\frak{W}}
+\newcommand{\fX}{\frak{X}}
+\newcommand{\fY}{\frak{Y}}
+\newcommand{\fZ}{\frak{Z}}
+
+\newcommand{\fq}{\frak{q}}
+\newcommand{\fw}{\frak{w}}
+\newcommand{\fe}{\frak{e}}
+\newcommand{\fr}{\frak{r}}
+\newcommand{\ft}{\frak{t}}
+\newcommand{\fy}{\frak{y}}
+\newcommand{\fu}{\frak{u}}
+%\newcommand{\fi}{\frak{i}}
+\newcommand{\fo}{\frak{o}}
+\newcommand{\fp}{\frak{p}}
+\newcommand{\fa}{\frak{a}}
+\newcommand{\fs}{\frak{s}}
+\newcommand{\fd}{\frak{d}}
+\newcommand{\ff}{\frak{f}}
+\newcommand{\fg}{\frak{g}}
+\newcommand{\fh}{\frak{h}}
+\newcommand{\fj}{\frak{j}}
+\newcommand{\fk}{\frak{k}}
+\newcommand{\fl}{\frak{l}}
+\newcommand{\fz}{\frak{z}}
+\newcommand{\fx}{\frak{x}}
+\newcommand{\fc}{\frak{c}}
+\newcommand{\fv}{\frak{v}}
+\newcommand{\fb}{\frak{b}}
+\newcommand{\fn}{\frak{n}}
+\newcommand{\fm}{\frak{m}}
+
+\newcommand{\1}{\BM{1}} % indicator function
+
+\newcommand{\tq}{\tilde{q}}
+\newcommand{\tw}{\tilde{w}}
+\newcommand{\te}{\tilde{e}}
+\newcommand{\tr}{\tilde{r}}
+\let\oldtt\tt
+\renewcommand{\tt}{\tilde{t}}
+\newcommand{\ty}{\tilde{y}}
+\newcommand{\tu}{\tilde{u}}
+\newcommand{\ti}{\tilde{i}}
+%\newcommand{\to}{\tilde{o}}
+\newcommand{\tp}{\tilde{p}}
+\newcommand{\ta}{\tilde{a}}
+\newcommand{\ts}{\tilde{s}}
+\newcommand{\td}{\tilde{d}}
+\newcommand{\tf}{\tilde{f}}
+\newcommand{\tg}{\tilde{g}}
+\let\oldth\th
+\renewcommand{\th}{\tilde{h}}
+\newcommand{\tj}{\tilde{j}}
+\newcommand{\tk}{\tilde{k}}
+\newcommand{\tl}{\tilde{l}}
+\newcommand{\tz}{\tilde{z}}
+\newcommand{\tx}{\tilde{x}}
+\newcommand{\tc}{\tilde{c}}
+\newcommand{\tv}{\tilde{v}}
+\newcommand{\tb}{\tilde{b}}
+\newcommand{\tn}{\tilde{n}}
+\newcommand{\tm}{\tilde{m}}
+
+\newcommand{\vect}[1]{\mathbf{#1}}		% for bold face vectors
+\newcommand{\vectorr}[1]{{\vec{{} #1}}}         % Adjusts where the arrow is placed
+\newcommand{\va}{\vectorr{a}}
+\newcommand{\vb}{\vectorr{b}}
+\newcommand{\vc}{\vectorr{c}}
+\newcommand{\ve}{\vectorr{e}}
+\newcommand{\vf}{\vectorr{f}}
+\newcommand{\vg}{\vectorr{g}}
+\newcommand{\vh}{\vectorr{h}}
+\newcommand{\vi}{\vectorr{i}}
+\newcommand{\vj}{\vectorr{j}}
+\newcommand{\vk}{\vectorr{k}}
+\newcommand{\vl}{\vectorr{l}}
+\newcommand{\vm}{\vectorr{m}}
+\newcommand{\vn}{\vectorr{n}}
+\newcommand{\vo}{\vectorr{o}}
+\newcommand{\vp}{\vectorr{p}}
+\newcommand{\vq}{\vectorr{q}}
+\newcommand{\vr}{\vectorr{r}}
+\newcommand{\vs}{\vectorr{s}}
+\newcommand{\vt}{\vectorr{t}}
+\newcommand{\vu}{\vectorr{u}}
+\newcommand{\vv}{\vectorr{v}}
+\newcommand{\vw}{\vectorr{w}}
+\newcommand{\vx}{\vectorr{x}}
+\newcommand{\vy}{\vectorr{y}}
+\newcommand{\vz}{\vectorr{z}}
+\newcommand{\Bb}{\mbf{b}}
+\newcommand{\Be}{\mbf{e}}
+\newcommand{\Bu}{\mbf{u}}
+\newcommand{\Bv}{\mbf{v}}
+\newcommand{\Bw}{\mbf{w}}
+\newcommand{\Bx}{\mbf{x}}
+\newcommand{\By}{\mbf{y}}
+\newcommand{\Bz}{\mbf{z}}
+
+% 			*** MATH SYMBOLS ***
+
+% command for the independence symbol
+\newcommand{\ind}{\perp\!\!\!\!\perp}
+
+
+\newcommand{\op}[1]{\operatorname{#1}} %e.g. write $\op{tr}$ for trace.
+
+\makeatletter
+\newcommand\RedeclareMathOperator{%
+  \@ifstar{\def\rmo@s{m}\rmo@redeclare}{\def\rmo@s{o}\rmo@redeclare}%
+}
+% this is taken from \renew@command
+\newcommand\rmo@redeclare[2]{%
+  \begingroup \escapechar\m@ne\xdef\@gtempa{{\string#1}}\endgroup
+  \expandafter\@ifundefined\@gtempa
+     {\@latex@error{\noexpand#1undefined}\@ehc}%
+     \relax
+  \expandafter\rmo@declmathop\rmo@s{#1}{#2}}
+% This is just \@declmathop without \@ifdefinable
+\newcommand\rmo@declmathop[3]{%
+  \DeclareRobustCommand{#2}{\qopname\newmcodes@#1{#3}}%
+}
+\@onlypreamble\RedeclareMathOperator
+\makeatother
+
+\newcommand{\abs}[1]{\left \lvert #1 \right\rvert}		% absolute value \norm{x}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}		% norm \norm{x}
+\newcommand{\ip}[2]{\left \langle #1,\, #2\right\rangle}	% ip = inner product \ip{f}{g}
+\newcommand{\ipdot}[2]{ #1\, \cdot\,  #2}	% ipdot = dot product \ipdot{f}{g}
+\let\oldker\ker
+\renewcommand{\ker}{\op{ker}}
+\newcommand{\brak}[2]{[#1,\, #2]}		% brak = bracket \brak{A,B} gives [A,B]
+\newcommand{\brac}[1]{\{\,#1\,\}}		% brac = brace  {  } \brac{A} gives {A}
+\newcommand{\Var}[1]{\op{Var}\left[{#1}\right]} % Variance \Var{X}
+
+\renewcommand{\div}{\op{div}}
+\newcommand{\grad}{\mathbf \nabla}
+
+\DeclareMathOperator*{\argmin}{arg min}
+\DeclareMathOperator*{\argmax}{arg max}
+
+% \restr{f}{E} is the restriction of $f$ on set $E$
+\newcommand\restr[2]{{% we make the whole thing an ordinary symbol
+  \left.\kern-\nulldelimiterspace % automatically resize the bar with \right
+  #1 % the function
+  \vphantom{\big|} % pretend it's a little taller at normal size
+  \right|_{#2} % this is the delimiter
+  }}
+
+\RedeclareMathOperator*{\max}{max} % now $$\max$$ typesets limits below and above
+\RedeclareMathOperator*{\min}{min} % now $$\min$$ typesets limits below and above
+\RedeclareMathOperator*{\arg}{arg} % now $$\arg$$ typesets limits below and above
+%The above change doesn't affect the inline $\max$
+
+\DeclareMathOperator{\codim}{codim}
+\DeclareMathOperator{\weak}{\rightharpoonup} %weak convergence
+\DeclareMathOperator{\weakstar}{\overset{\ast}{\rightharpoonup}} %weak star convergence
+\DeclareMathOperator{\Ima}{Im}
+\DeclareMathOperator{\ave}{ave}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\Aut}{Aut}
+\DeclareMathOperator{\ch}{char}
+\DeclareMathOperator{\ev}{ev}
+\DeclareMathOperator{\id}{id}
+\DeclareMathOperator{\rk}{rk}
+\DeclareMathOperator{\nul}{nul}
+\DeclareMathOperator{\orb}{orb}
+\DeclareMathOperator{\Ind}{Ind}
+\DeclareMathOperator{\Res}{Res}
+\DeclareMathOperator{\End}{End}
+\DeclareMathOperator{\lcm}{lcm}
+\DeclareMathOperator{\Hom}{Hom}
+\DeclareMathOperator{\Gal}{Gal}
+\DeclareMathOperator{\Reg}{Reg}
+\DeclareMathOperator{\Stab}{Stab}
+\DeclareMathOperator{\Mod}{mod}
+\newcommand{\bpmat}{\begin{pmatrix}}
+\newcommand{\epmat}{\end{pmatrix}}
+\newcommand{\twobytwo}[4]{\begin{bmatrix}  % 2 by 2 matrices
+#1 & #2 \\
+#3 & #4
+\end{bmatrix}
+}
+\newcommand{\twobyone}[2]{\begin{bmatrix} % 2 by 1 matrices
+#1 \\
+#2
+\end{bmatrix}
+}
+
+\newcommand{\onebytwo}[2]{\begin{bmatrix} % 1 by 2 matrices
+#1 & #2
+\end{bmatrix}
+}
+
+\newcommand{\onebythree}[3]{\begin{bmatrix}% 1 by 3 matrices
+#1 & #2 & #3
+\end{bmatrix}
+}
+\newcommand{\onebyfour}[4]{\begin{bmatrix} % 1 by 4 matrices
+#1 & #2 & #3 & #4
+\end{bmatrix}
+}
+\newcommand{\threebytwo}[6]{\begin{bmatrix}% 3 by 2 matrices
+#1 & #2 \\
+#3 & #4 \\
+#5 & #6
+\end{bmatrix}
+}
+\newcommand{\threebyone}[3]{\begin{bmatrix}% 3 by 2 matrices
+#1 \\
+#2 \\
+#3
+\end{bmatrix}
+}
+\newcommand{\twobythree}[6]{\begin{bmatrix}% 2 by 3 matrices
+#1 & #2 & #3 \\
+#4 & #5 & #6
+\end{bmatrix}
+}
+\newcommand{\threebythree}[9]{\begin{bmatrix}% 3 by 3 matrices
+#1 & #2 & #3 \\
+#4 & #5 & #6\\
+#7 & #8 & #9
+\end{bmatrix}
+}
+
+\newcommand{\PM}{\phantom{-}} %just some space PM
+\newcommand{\setm}{\smallsetminus} % set minus
+\newcommand{\bigstrut}{\rule[-5pt]{0pt}{25pt}} %big strut
+\newcommand{\sstrut}{\rule[-3pt]{0pt}{15pt}} %small strut
+\newcounter{numb}
+\newcommand{\Numb}{\stepcounter{numb}\arabic{numb}}
+\newcommand{\Numbb}{{\arabic{numb}}{\usecounter{numb}}}
+\newcommand{\nrule}{\vspace{10pt} \hrule \vspace{10pt}}
+
+\usepackage{siunitx}
+
+% \SI{3.5}{\micro\second} \\
+% \SI{0.1}{\perthousand} \\
+% \SI{20}{\degreeCelsius} \\
+% \SI{100}{\ohm}
+
+% 			*** DRAWING ***
+\usepackage{tikz}
+%Draw a Point at location (#1,#2).  Remember to write \drawBlackPoint{  {sqrt(3)}  }{  2  }
+\newcommand{\drawBlackPoint}[2]{\draw[fill] (#1,#2) circle [radius=0.1];}
+\newcommand{\drawBluePoint}[2]{\draw[fill, blue] (#1,#2) circle [radius=0.1];}
+\newcommand{\drawRedPoint}[2]{\draw[fill, red] (#1,#2) circle [radius=0.1];}
+\newcommand{\drawGreenPoint}[2]{\draw[fill, green] (#1,#2) circle [radius=0.1];}
+\newcommand{\drawPurplePoint}[2]{\draw[fill, purple] (#1,#2) circle [radius=0.1];}
+
+% 			*** Quotation Marks ***
+\usepackage[autostyle=false, style=english]{csquotes}
+\MakeOuterQuote{"}
+
+% 			*** Colours ***
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\newcommand{\green}[1]{\textcolor{green}{#1}}
+\newcommand{\orange}[1]{\textcolor{orange}{#1}}
+\newcommand{\purple}[1]{\textcolor{purple}{#1}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\gray}[1]{\textcolor{gray}{#1}}

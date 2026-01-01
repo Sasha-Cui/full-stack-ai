@@ -1,0 +1,271 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\begin{document}
+
+\section{vLLM}
+
+\begin{verbatim}
+
+|-------------------------------------------------------------------|
+|                OUTER LOOP: RL iterations / epochs                 |
+|                                                                   |
+|   |---------------|      |-------------------|      |---------|   |
+|   |     vLLM      | ---> |  Compute Rewards  | ---> |DeepSpeed|   |
+|   | Generate      |      | (human/RM via     |      | Train   |   |
+|   | Trajectories  |      |  vLLM if needed)  |      | Policy  |   |
+|   |---------------|      |-------------------|      |---------|   |
+|          |                         |                     |        |
+|          |-----------------------------------------------|        |
+|                     (Updated Policy fed back)                     |
+|-------------------------------------------------------------------|
+
+\end{verbatim}
+
+\subsection{Motivation}
+Imagine a reinforcement learning (RL) training loop: we \textbf{generate trajectories}, compute rewards, and \textbf{update the policy} model. \\
+\textbf{vLLM} and \textbf{DeepSpeed} act as \emph{system-level optimizers} for these two core stages. \\
+vLLM accelerates \textbf{trajectory generation} and \textbf{reward inference}, making large-scale sampling highly efficient through optimized GPU memory management (PagedAttention). \\
+DeepSpeed accelerates \textbf{policy training}, enabling distributed, memory-efficient optimization (via ZeRO) for massive models. \\
+Together, they form the backbone of a scalable RL pipeline---vLLM for the inference-heavy side, DeepSpeed for the training-heavy side---both maximizing GPU utilization across the loop.
+
+\subsection{Section 1---The KV Cache and Why It Matters}
+
+\subsubsection{Attention Mechanism Formula}
+The general form of the \textbf{scaled dot-product attention} is:
+\[
+\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V,
+\]
+where we have
+\begin{itemize}
+  \item $Q$ = Query matrix
+  \item $K$ = Key matrix
+  \item $V$ = Value matrix
+  \item $d_k$ = Dimension of the key vectors (used for scaling)
+\end{itemize}
+
+At each decoding step, the model must compute attention between the \emph{current} token(s) and \emph{all past key–value pairs} to determine what context is most relevant.
+
+\subsubsection{2. Computational Cost Without Caching}
+During \textbf{autoregressive generation}, each new token requires recomputing the attention using \emph{all} previous tokens:
+\[
+\text{Attention}_t = \text{softmax}\left(\frac{Q_t K_{1:t}^T}{\sqrt{d_k}}\right)V_{1:t}.
+\]
+That means for every new token $t$, you rebuild $K_{1:t}$ and $V_{1:t}$. This leads to \textbf{quadratic time complexity} $O(T^2)$ for a sequence of length $T$. This becomes very expensive for long sequences.
+
+\begin{verbatim}
+            Generating the 4th token
+
+   |-----------------------|
+   | tok 1 | tok 2 | tok 3 |  <-- already processed
+   |-----------------------|
+             ^
+             |  attend to all
+           [ tok 4 ]
+\end{verbatim}
+
+\subsubsection{3. KV Caching: The Core Idea}
+\textbf{KV caching} avoids recomputing $K$ and $V$ for the prefix every step.
+\begin{itemize}
+  \item On the first pass, compute $K$ and $V$ for the prompt/prefix and \textbf{store} them.
+  \item On each new token, compute only the new $Q$, and \textbf{reuse} cached $K,V$.
+\end{itemize}
+This keeps the cost \emph{per new token} closer to $O(T)$ instead of $O(T^2)$.
+
+\subsubsection{4. Why KV Cache Is Not Trivial in Serving}
+Real LLM serving is not a single long sequence:
+\begin{itemize}
+  \item Many requests arrive at different times.
+  \item Each request has a different length.
+  \item Some requests finish, some keep generating.
+\end{itemize}
+So we must keep many KV caches in GPU memory, all growing at different speeds.
+
+\subsubsection{5. Baseline vs With KV Cache}
+\begin{verbatim}
+| Compute Keys/Values | Recomputed each step | Reused from cache |
+\end{verbatim}
+\begin{verbatim}
+| Complexity | $ O(T^2) $ | $ O(T) $ |
+\end{verbatim}
+\begin{verbatim}
+| Speed | Slow for long sequences | Much faster |
+\end{verbatim}
+
+\subsubsection{6. Throughput via Batching, and Its Two Problems}
+To use the GPU efficiently, we \textbf{batch} requests. But in practice:
+\begin{enumerate}
+  \item \textbf{Asynchronous arrivals:} requests don’t start together.
+  \item \textbf{Variable lengths:} prompts/outputs differ; some finish early.
+\end{enumerate}
+This leads to idle threads and poor packing unless we \textbf{rebatch every decoding iteration} (a.k.a. \emph{iteration-level scheduling} / \emph{cellular batching}).
+
+\subsubsection{7. KV Cache Still Has Issues}
+Even with better batching, many concurrent, variable-length requests cause \textbf{GPU memory fragmentation}---turning into a GPU memory management problem that Section 2 addresses.
+
+\subsection{Section 2---PagedAttention: Solving the KV Cache Memory Problem}
+
+\subsubsection{1. Motivation: KV Cache Fixes Computation, but Creates a Memory Challenge}
+KV caching saves compute but each request’s cache \textbf{grows autoregressively} as new tokens are generated. With many concurrent requests, caches grow and finish at different times, stressing GPU memory.
+
+\subsubsection{2. The Naïve Way: Consecutive (Contiguous) Allocation}
+\begin{verbatim}
+|-----------------------------------------------|
+| [Req A (50 tok)] [Req B (30 tok)] [Req C (80)]|
+|-----------------------------------------------|
+\end{verbatim}
+If B finishes early, we get a hole:
+\begin{verbatim}
+|--------------------------------------------------------------|
+| [Req A (50 tok)] [cleared (30 tok)] [Req C (80)] [Req D (60)]|
+|--------------------------------------------------------------|
+\end{verbatim}
+Now A or C may want to grow, but the memory right next to them is not free.
+
+This leads to:
+\begin{itemize}
+  \item fragmentation,
+  \item expensive copies/reallocations,
+  \item or rejecting new/longer requests.
+\end{itemize}
+
+\subsubsection{3. The “Cut It Up” Idea---Why It’s Hard}
+Splitting a request’s KV into smaller chunks would pack memory better, \emph{but} then attention has to reconstruct the correct order---hard to track without structure.
+\begin{verbatim}
+|-----------------------------------------------|
+| [Req A (50 tok)] [Req B (30 tok)] [Req C (80)]|
+|-----------------------------------------------|
+\end{verbatim}
+\begin{verbatim}
+|--------------------------------------------------------------------------|
+| [Req A (50 tok)] [Req D part 1 (30 tok)] [Req C (80)] [Req D part 2 (30)]|
+|--------------------------------------------------------------------------|
+\end{verbatim}
+
+\subsubsection{4. The Breakthrough: PagedAttention}
+\textbf{PagedAttention} slices GPU memory into \textbf{uniform pages} (small fixed-size blocks, e.g. a fixed number of tokens per page). Each request’s KV cache is a \emph{list of pages}, not one big block.
+
+\begin{verbatim}
+GPU pages:  P1 | P2 | P3 | P4 | P5 | P6 | ...
+Req A  → P1,P2
+Req B  → P3
+Req C  → P4,P5
+A grows → take P6 (no moves, just add a page)
+\end{verbatim}
+
+\subsubsection{5. The Page Table (Indirection)}
+A lightweight \textbf{page table} maps \emph{logical token indices} $\to$ \emph{(page, offset)}:
+\begin{verbatim}
+token 37 → page_table[37//page_size] + (37 % page_size)
+\end{verbatim}
+Attention kernels read K/V via this mapping, so KV can be physically scattered yet \textbf{logically contiguous}.
+
+\subsubsection{6. Benefits}
+\begin{itemize}
+  \item Avoids large reallocations when a request grows.
+  \item Reuses freed pages from finished requests.
+  \item Greatly reduces fragmentation.
+  \item Enables many concurrent, variable-length sequences.
+\end{itemize}
+
+\subsubsection{7. Interaction with Scheduling}
+Because vLLM also does per-iteration / cellular scheduling, PagedAttention makes it feasible to mix:
+\begin{itemize}
+  \item long-running chats,
+  \item short bursts,
+  \item reward-model-style inference
+\end{itemize}
+on the same GPU without running into “I can’t fit that request” issues.
+
+\subsection{Section 3---Inside vLLM: How Paging and Scheduling Work Together}
+
+\subsubsection{1. Goal}
+Keep the GPU highly utilized despite \textbf{asynchronous arrivals} and \textbf{variable-length} requests.
+
+\subsubsection{2. Runtime Pipeline}
+\begin{verbatim}
+User/API → Request Queue → Scheduler (per-iteration) → GPU Workers → PagedAttention → Streams Out
+\end{verbatim}
+
+\begin{itemize}
+  \item \textbf{Request Queue:} holds incoming work
+  \item \textbf{Scheduler:} mixes new and ongoing requests instead of waiting for a full batch; also removes finished sequences (those that reached EOS or max length)
+  \item \textbf{GPU Workers:} run attention kernels; read K/V via page table; write new K/V into free pages
+  \item \textbf{PagedAttention:} provides flexible KV memory without copies
+  \item \textbf{Streaming:} return tokens as they are ready while continuing decoding
+\end{itemize}
+
+\subsubsection{3. Why This Works}
+\begin{itemize}
+  \item PagedAttention allows \textbf{dynamic batching} without moving memory.
+  \item The scheduler keeps batches full each iteration.
+  \item Memory stays compact and reusable; fewer OOMs and higher throughput.
+\end{itemize}
+
+\subsubsection{4. Concept Diagram}
+\begin{verbatim}
+|-------------------------------------------------------------------------------|
+| [Incoming Requests] -> Queue -> Scheduler -> GPU Worker -> PagedAttention ->  |
+|                             ^                                   |             |
+|                        Stream tokens back to clients continuously             |
+|-------------------------------------------------------------------------------|
+\end{verbatim}
+
+\subsection{Section 4---Minimal “How to Run” Demos}
+
+\subsubsection{4.1 Install}
+\begin{verbatim}
+# Fresh environment recommended
+# If you're in Jupyter, the line below installs into the notebook kernel.
+# If you're in a real project, prefer requirements.txt or pyproject.toml
+%pip install -U vllm transformers accelerate openai
+\end{verbatim}
+
+\subsubsection{4.2 Pick a model}
+\begin{verbatim}
+Qwen3-4B-Instruct-2507
+\end{verbatim}
+
+\begin{verbatim}
+from vllm import LLM, SamplingParams
+import torch
+
+# Check GPU
+if torch.cuda.is_available():
+    print(f"GPU: {torch.cuda.get_device_name(0)}")
+else:
+    print("No GPU found, vLLM will be limited")
+
+# Create the model
+llm = LLM(
+    model="Qwen/Qwen2-1.5B-Instruct",
+    trust_remote_code=True,
+)
+
+# Sampling params
+params = SamplingParams(
+    temperature=0.7,
+    top_p=0.9,
+    max_tokens=200,
+    skip_special_tokens=False
+)
+
+prompts = [
+    "Tell me a short story about a robot.",
+    "List three benefits of paged KV cache for LLM serving."
+]
+
+outputs = llm.generate(prompts, params)
+
+for i, output in enumerate(outputs):
+    print(f"\n{'='*50}")
+    response = output.outputs[0].text
+    print(f"Response {i+1}: {response}")
+\end{verbatim}
+
+\end{document}
