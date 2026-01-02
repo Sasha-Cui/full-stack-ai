@@ -1,0 +1,301 @@
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
+\begin{document}
+\section{Scaling Laws for Neural Language Models}
+\label{sec:scaling}
+
+\subsection{Motivation: Predictable Improvement}
+\label{sec:scaling:motivation}
+
+One of the most remarkable discoveries in modern AI is that model performance scales predictably with key factors: model size, dataset size, and compute budget. Understanding these \textbf{scaling laws} enables:
+\begin{itemize}
+  \item \textbf{Resource planning:} Predict performance before training expensive models
+  \item \textbf{Optimal allocation:} Balance parameters, data, and compute efficiently
+  \item \textbf{Research prioritization:} Identify bottlenecks and high-leverage improvements
+  \item \textbf{Capability forecasting:} Anticipate future model capabilities
+\end{itemize}
+
+The power of scaling laws lies in their predictability across orders of magnitude, allowing researchers to extrapolate from smaller experiments to larger deployments.
+
+\subsection{Power Law Foundations}
+\label{sec:scaling:power}
+
+Scaling laws typically follow \textbf{power law} relationships of the form:
+\begin{equation}
+  L = \frac{\alpha_0}{p^\alpha}
+  \label{eq:power-law}
+\end{equation}
+
+where:
+\begin{itemize}
+  \item $L$ is the loss (or error metric)
+  \item $p$ is a scaling parameter (e.g., number of parameters, dataset size)
+  \item $\alpha_0$ is a constant
+  \item $\alpha$ is the scaling exponent
+\end{itemize}
+
+\subsubsection{Why Power Laws?}
+
+Power laws arise from \textbf{scale invariance}: scaling the input $p$ by a factor $k$ produces a proportional response $f(kp) = k^\beta f(p)$. This property necessarily leads to relationships of the form $L = cp^\alpha$.
+
+\subsubsection{Log-Log Linearity}
+
+Taking logarithms of Equation~\ref{eq:power-law}:
+\begin{equation}
+  \log L = \log \alpha_0 - \alpha \log p
+\end{equation}
+
+This linearity in log-log space is the signature of power laws and enables easy fitting and extrapolation.
+
+\subsection{Kaplan Scaling Laws (2020)}
+\label{sec:scaling:kaplan}
+
+Kaplan et al.~\cite{kaplan2020} conducted extensive experiments to characterize how language model loss scales with:
+\begin{itemize}
+  \item $N$ = Number of model parameters
+  \item $D$ = Dataset size (number of tokens)
+  \item $C$ = Compute budget (FLOPs)
+\end{itemize}
+
+\subsubsection{Key Findings}
+
+\paragraph{Loss vs. Model Size.}
+\begin{equation}
+  L(N) \propto N^{-\alpha_N} \quad \text{where } \alpha_N \approx 0.076
+\end{equation}
+
+Larger models achieve lower loss, with diminishing returns following a power law.
+
+\paragraph{Loss vs. Dataset Size.}
+\begin{equation}
+  L(D) \propto D^{-\alpha_D} \quad \text{where } \alpha_D \approx 0.095
+\end{equation}
+
+More training data improves performance, but with diminishing returns similar to model size.
+
+\paragraph{Loss vs. Compute.}
+\begin{equation}
+  L(C) \propto C^{-\alpha_C} \quad \text{where } \alpha_C \approx 0.050
+\end{equation}
+
+Given fixed compute, how should one allocate between model size and training tokens?
+
+\paragraph{Optimal Allocation (Kaplan).} Kaplan et al. recommended:
+\begin{itemize}
+  \item Most compute should go toward larger models
+  \item Dataset size can remain relatively modest
+  \item This led to models like GPT-3 (175B parameters, 300B tokens)
+\end{itemize}
+
+\subsection{Chinchilla Scaling Laws (2022)}
+\label{sec:scaling:chinchilla}
+
+Hoffmann et al.~\cite{chinchilla2022} revisited Kaplan's experiments and found different optimal allocations.
+
+\subsubsection{Key Revision}
+
+\textbf{Main Finding:} For compute-optimal training, model size ($N$) and dataset size ($D$) should scale equally with compute budget ($C$):
+\begin{equation}
+  N \propto C^{0.50}, \quad D \propto C^{0.50}
+\end{equation}
+
+\subsubsection{Implications}
+
+\paragraph{Previous Models Were Over-Parameterized.} Models like GPT-3 used too many parameters for their training data:
+\begin{itemize}
+  \item GPT-3: 175B parameters, 300B tokens
+  \item Chinchilla: 70B parameters, 1.4T tokens
+  \item Result: Chinchilla outperformed GPT-3 despite fewer parameters
+\end{itemize}
+
+\paragraph{Modern Approach.} Post-Chinchilla models follow this guidance:
+\begin{itemize}
+  \item LLaMA-65B: 65B parameters, 1.4T tokens
+  \item Mistral-7B: 7B parameters, scaled appropriately
+  \item Emphasis on high-quality training data
+\end{itemize}
+
+\subsubsection{Three Scaling Regimes}
+
+Understanding when different factors dominate:
+
+\paragraph{Small-Scale Regime.} Model capacity is the bottleneck:
+\begin{itemize}
+  \item Increasing $N$ yields largest improvement
+  \item Limited by model expressiveness
+  \item Example: Sub-billion parameter models
+\end{itemize}
+
+\paragraph{Medium-Scale Regime.} Dataset size becomes limiting:
+\begin{itemize}
+  \item Need more diverse training data
+  \item Diminishing returns from just scaling $N$
+  \item Example: 1B--100B parameter range
+\end{itemize}
+
+\paragraph{Large-Scale Regime.} Compute efficiency matters most:
+\begin{itemize}
+  \item Both $N$ and $D$ must scale together
+  \item Infrastructure and optimization critical
+  \item Example: 100B+ parameter models
+\end{itemize}
+
+\subsection{Practical Applications}
+\label{sec:scaling:applications}
+
+\subsubsection{Model Development Planning}
+
+Given compute budget $C$, determine optimal:
+\begin{align}
+  N^* &= k_1 \cdot C^{0.50} \\
+  D^* &= k_2 \cdot C^{0.50}
+\end{align}
+
+where $k_1, k_2$ are task-dependent constants.
+
+\subsubsection{Performance Prediction}
+
+Estimate final loss before training:
+\begin{equation}
+  L_{\text{pred}} = \frac{\alpha_0}{N^{\alpha_N} \cdot D^{\alpha_D}}
+\end{equation}
+
+This enables cost-benefit analysis for model development.
+
+\subsubsection{Bottleneck Identification}
+
+If current performance is:
+\begin{itemize}
+  \item \textbf{Far from predicted:} Optimization or data quality issues
+  \item \textbf{Close to predicted but insufficient:} Need more $N$, $D$, or $C$
+  \item \textbf{Better than predicted:} Architecture or training innovations
+\end{itemize}
+
+\subsection{Data Availability Constraints}
+\label{sec:scaling:data}
+
+Scaling laws assume unlimited high-quality data, but reality imposes limits:
+
+\subsubsection{Internet-Scale Data}
+
+Estimates suggest:
+\begin{itemize}
+  \item ~10-100 trillion tokens of web text available
+  \item Quality varies dramatically
+  \item Deduplification reduces effective size
+  \item Multilingual data has different coverage
+\end{itemize}
+
+\subsubsection{Synthetic Data}
+
+When natural data exhausted:
+\begin{itemize}
+  \item \textbf{Distillation:} Learn from stronger models
+  \item \textbf{Self-play:} Generate and curate own data
+  \item \textbf{Targeted generation:} Focus on capability gaps
+  \item \textbf{Quality over quantity:} Careful curation and filtering
+\end{itemize}
+
+\subsection{Downstream Task Performance}
+\label{sec:scaling:downstream}
+
+Pretraining scaling predicts downstream capabilities:
+
+\subsubsection{Emergent Abilities}
+
+Some capabilities appear suddenly at scale:
+\begin{itemize}
+  \item Multi-step reasoning
+  \item In-context learning
+  \item Code generation
+  \item Multilingual transfer
+\end{itemize}
+
+\textbf{Debate:} Whether these are truly emergent or merely crossing evaluation thresholds.
+
+\subsubsection{Fine-Tuning Efficiency}
+
+Larger pretrained models typically:
+\begin{itemize}
+  \item Require less fine-tuning data
+  \item Converge faster in fine-tuning
+  \item Transfer better across domains
+  \item Benefit more from parameter-efficient methods (LoRA)
+\end{itemize}
+
+\subsection{Inference Scaling}
+\label{sec:scaling:inference}
+
+Beyond training, inference costs matter:
+
+\subsubsection{Performance vs. Inference Cost}
+
+Tradeoffs:
+\begin{itemize}
+  \item \textbf{Larger models:} Better quality, higher latency/cost
+  \item \textbf{Smaller models:} Worse quality, lower latency/cost
+  \item \textbf{Quantization:} Reduces inference cost at slight quality loss
+\end{itemize}
+
+\subsubsection{Deployment Considerations}
+
+For production:
+\begin{equation}
+  \text{Total Cost} = \text{Training Cost} + (\text{Inference Cost} \times \text{Number of Requests})
+\end{equation}
+
+Since models serve billions of requests, inference costs often dominate. This motivates:
+\begin{itemize}
+  \item Smaller, cheaper models when sufficient
+  \item Knowledge distillation from large to small models
+  \item Efficient architectures (Mixture-of-Experts)
+  \item Quantization and pruning
+\end{itemize}
+
+\subsection{Limitations and Future Directions}
+\label{sec:scaling:future}
+
+\subsubsection{Limitations of Current Scaling Laws}
+
+\begin{itemize}
+  \item \textbf{Architecture dependence:} Scaling exponents may differ for different architectures
+  \item \textbf{Task specificity:} Downstream tasks may not scale identically to pretraining loss
+  \item \textbf{Data quality:} Scaling laws assume i.i.d. data; quality matters
+  \item \textbf{Multimodality:} Vision-language models may follow different laws
+\end{itemize}
+
+\subsubsection{Open Questions}
+
+\begin{itemize}
+  \item How do Mixture-of-Experts models scale?
+  \item Do different modalities (vision, audio) follow similar laws?
+  \item How does post-training (RL, fine-tuning) scale?
+  \item Are there fundamental limits to scaling?
+  \item How do architectural innovations affect scaling?
+\end{itemize}
+
+\subsection{Summary}
+\label{sec:scaling:summary}
+
+Key takeaways:
+\begin{itemize}
+  \item Model performance scales predictably with size, data, and compute
+  \item Power laws enable performance prediction across orders of magnitude
+  \item Chinchilla scaling: balance parameters and data equally
+  \item Practical implications for model development and deployment
+  \item Consider both training and inference costs
+  \item Data availability and quality impose real constraints
+\end{itemize}
+
+Understanding scaling laws is essential for:
+\begin{itemize}
+  \item \textbf{Research:} Prioritize high-leverage improvements
+  \item \textbf{Development:} Allocate resources optimally
+  \item \textbf{Deployment:} Balance quality and cost
+  \item \textbf{Strategy:} Anticipate future capabilities
+\end{itemize}
+
+As the field matures, scaling laws will continue evolving, but their fundamental insight---that AI progress is predictable and scalable---remains transformative.
+
+\end{document}
+

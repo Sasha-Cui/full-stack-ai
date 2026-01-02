@@ -1,0 +1,277 @@
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
+\begin{document}
+\section{LLM Evaluation and Alignment}
+\label{sec:eval}
+
+\subsection{Motivation: Why Evaluation Matters}
+\label{sec:eval:motivation}
+
+As language models grow in capability, rigorous evaluation becomes essential for:
+\begin{itemize}
+  \item \textbf{Progress measurement:} Tracking improvements across model versions
+  \item \textbf{Model selection:} Choosing appropriate models for specific tasks
+  \item \textbf{Research validation:} Demonstrating the effectiveness of new techniques
+  \item \textbf{Safety assessment:} Identifying potential harms and failure modes
+  \item \textbf{Capability mapping:} Understanding what models can and cannot do
+\end{itemize}
+
+However, LLM evaluation presents unique challenges:
+\begin{itemize}
+  \item \textbf{Open-ended generation:} Many valid responses to the same prompt
+  \item \textbf{Capability breadth:} Models span reasoning, coding, creativity, and more
+  \item \textbf{Benchmark contamination:} Models may have seen evaluation data during training
+  \item \textbf{Gaming metrics:} Optimizing for benchmarks without genuine improvement
+  \item \textbf{Alignment vs. capability:} Tradeoffs between helpfulness, honesty, and harmlessness
+\end{itemize}
+
+\subsection{Evaluation Methodologies}
+\label{sec:eval:methods}
+
+\subsubsection{Benchmark Design Principles}
+
+Effective benchmarks share common characteristics:
+\begin{itemize}
+  \item \textbf{Diverse tasks:} Cover multiple domains and capabilities
+  \item \textbf{Difficulty range:} Include both easy and hard examples
+  \item \textbf{Clear metrics:} Objective, reproducible scoring
+  \item \textbf{Low contamination:} Minimize training data overlap
+  \item \textbf{Regular updates:} Refresh to avoid overfitting
+\end{itemize}
+
+\subsubsection{Common Evaluation Paradigms}
+
+\paragraph{Multiple Choice.} Present options and measure selection accuracy:
+\begin{itemize}
+  \item \textbf{Advantages:} Objective scoring, easy to scale
+  \item \textbf{Disadvantages:} May not reflect real usage, susceptible to guessing
+  \item \textbf{Examples:} MMLU, HellaSwag, ARC
+\end{itemize}
+
+\paragraph{Exact Match.} Compare generated text to reference answers:
+\begin{itemize}
+  \item \textbf{Advantages:} Clear success criterion
+  \item \textbf{Disadvantages:} Inflexible, penalizes valid alternatives
+  \item \textbf{Examples:} GSM8K (math), HumanEval (code)
+\end{itemize}
+
+\paragraph{Human Evaluation.} Expert judgment of outputs:
+\begin{itemize}
+  \item \textbf{Advantages:} Captures nuanced quality
+  \item \textbf{Disadvantages:} Expensive, slow, subjective
+  \item \textbf{Examples:} Chatbot Arena, LMSYS leaderboard
+\end{itemize}
+
+\paragraph{LLM-as-Judge.} Use strong models to evaluate weaker ones:
+\begin{itemize}
+  \item \textbf{Advantages:} Scalable, captures complex criteria
+  \item \textbf{Disadvantages:} Inherits judge model biases
+  \item \textbf{Examples:} AlpacaEval, MT-Bench
+\end{itemize}
+
+\subsection{The LM Evaluation Harness}
+\label{sec:eval:lmeval}
+
+The \texttt{lm-evaluation-harness}~\cite{lmeval} from EleutherAI provides a unified framework for evaluating language models across dozens of benchmarks.
+
+\subsubsection{Key Features}
+
+\begin{itemize}
+  \item \textbf{Standardized interface:} Consistent API across 200+ tasks
+  \item \textbf{Reproducibility:} Fixed random seeds and evaluation protocols
+  \item \textbf{Efficiency:} Batched inference and caching
+  \item \textbf{Extensibility:} Easy to add custom tasks
+  \item \textbf{Model support:} HuggingFace, vLLM, OpenAI API, and more
+\end{itemize}
+
+\subsubsection{Usage Pattern}
+
+A typical evaluation workflow:
+\begin{verbatim}
+lm_eval --model hf \
+  --model_args pretrained=meta-llama/Llama-3.1-8B \
+  --tasks mmlu,gsm8k,hellaswag \
+  --batch_size 8 \
+  --output_path results/
+\end{verbatim}
+
+This produces a detailed report with per-task metrics, aggregate scores, and statistical confidence intervals.
+
+\subsubsection{Custom Task Definition}
+
+Users can define new evaluation tasks in YAML:
+\begin{verbatim}
+task: my_custom_task
+dataset_name: my_org/my_dataset
+output_type: multiple_choice
+metric: acc
+num_fewshot: 5
+\end{verbatim}
+
+This flexibility enables evaluation on proprietary or domain-specific benchmarks.
+
+\subsection{Alignment: Beyond Capability}
+\label{sec:eval:alignment}
+
+Alignment ensures models are helpful, honest, and harmless---not just capable.
+
+\subsubsection{Reinforcement Learning from Human Feedback (RLHF)}
+
+RLHF~\cite{rlhf} trains models to generate outputs humans prefer:
+
+\paragraph{Phase 1: Supervised Fine-Tuning (SFT).}
+Train on high-quality demonstration data:
+\begin{itemize}
+  \item Collect expert demonstrations
+  \item Fine-tune base model to imitate
+  \item Produces helpful but not necessarily preferred outputs
+\end{itemize}
+
+\paragraph{Phase 2: Reward Model Training.}
+Learn a preference model from comparisons:
+\begin{itemize}
+  \item Present pairs of model outputs
+  \item Humans indicate which is better
+  \item Train classifier to predict preferences
+  \item Reward model scores: $r_\theta(x, y)$
+\end{itemize}
+
+\paragraph{Phase 3: RL Policy Training.}
+Optimize policy to maximize reward:
+\begin{align}
+  \max_\pi \mathbb{E}_{x \sim \mathcal{D}, y \sim \pi(\cdot|x)} [r_\theta(x, y) - \beta \text{KL}(\pi \| \pi_{\text{ref}})]
+\end{align}
+
+The KL penalty prevents the policy from deviating too far from the reference model, avoiding reward hacking.
+
+\subsubsection{Direct Preference Optimization (DPO)}
+
+DPO~\cite{dpo} simplifies RLHF by directly optimizing on preference data:
+\begin{itemize}
+  \item \textbf{No reward model:} Directly use preference pairs
+  \item \textbf{Simpler training:} Standard supervised learning
+  \item \textbf{Better stability:} Avoids RL optimization challenges
+\end{itemize}
+
+The DPO loss:
+\begin{align}
+  \mathcal{L}_{\text{DPO}} = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)} \right) \right]
+\end{align}
+
+where $y_w$ is the preferred completion and $y_l$ is the dispreferred one.
+
+\subsubsection{Constitutional AI}
+
+Constitutional AI~\cite{constitutional} encodes explicit principles:
+\begin{itemize}
+  \item \textbf{Self-critique:} Model critiques its own outputs
+  \item \textbf{Self-revision:} Generates improved versions
+  \item \textbf{Preference learning:} Learns from self-comparisons
+  \item \textbf{Transparency:} Explicit ethical guidelines
+\end{itemize}
+
+This approach reduces reliance on human labels while maintaining alignment.
+
+\subsection{Common Evaluation Pitfalls}
+\label{sec:eval:pitfalls}
+
+\subsubsection{Benchmark Contamination}
+
+Models may have seen evaluation data during pretraining:
+\begin{itemize}
+  \item \textbf{Detection:} Check for memorization with perturbed examples
+  \item \textbf{Mitigation:} Use private test sets, regular benchmark rotation
+  \item \textbf{Reporting:} Disclose known overlaps transparently
+\end{itemize}
+
+\subsubsection{Gaming the Metric}
+
+Optimizing for benchmarks can degrade real-world performance:
+\begin{itemize}
+  \item \textbf{Goodhart's Law:} ``When a measure becomes a target, it ceases to be a good measure''
+  \item \textbf{Solution:} Evaluate on diverse, held-out tasks
+  \item \textbf{Holistic assessment:} Combine quantitative and qualitative evaluation
+\end{itemize}
+
+\subsubsection{Multi-Issue Problems}
+
+A single output may fail in multiple ways:
+\begin{itemize}
+  \item Incorrect reasoning \textit{and} poor formatting
+  \item Helpful content \textit{but} potential harm
+  \item Correct answer \textit{but} inefficient approach
+\end{itemize}
+
+Effective evaluation must disentangle these dimensions.
+
+\subsubsection{The Alignment Tax}
+
+Alignment techniques may reduce capability:
+\begin{itemize}
+  \item \textbf{Observation:} Aligned models sometimes score lower on capability benchmarks
+  \item \textbf{Explanation:} Safety constraints limit certain behaviors
+  \item \textbf{Debate:} Whether this represents genuine capability loss or appropriate restraint
+\end{itemize}
+
+Research continues on alignment methods that preserve or enhance capabilities.
+
+\subsection{Emerging Evaluation Paradigms}
+\label{sec:eval:emerging}
+
+\subsubsection{Agentic Evaluation}
+
+As models become more agentic, evaluation must adapt:
+\begin{itemize}
+  \item \textbf{Multi-step tasks:} Measure planning and execution
+  \item \textbf{Tool use:} Evaluate when and how models call tools
+  \item \textbf{Long-horizon tasks:} Track performance over extended interactions
+  \item \textbf{Failure recovery:} Assess adaptation when plans go wrong
+\end{itemize}
+
+\subsubsection{Real-World Deployment Metrics}
+
+Beyond benchmarks, track production performance:
+\begin{itemize}
+  \item \textbf{User satisfaction:} Thumbs up/down, engagement time
+  \item \textbf{Task success rate:} Did the user accomplish their goal?
+  \item \textbf{Safety incidents:} Harmful outputs, jailbreaks
+  \item \textbf{Cost efficiency:} Quality per dollar spent
+\end{itemize}
+
+\subsection{Best Practices}
+\label{sec:eval:practices}
+
+\paragraph{For Researchers:}
+\begin{itemize}
+  \item Report results on diverse benchmarks
+  \item Include statistical significance tests
+  \item Disclose evaluation protocols completely
+  \item Consider both capability and alignment
+  \item Test for benchmark contamination
+\end{itemize}
+
+\paragraph{For Practitioners:}
+\begin{itemize}
+  \item Evaluate on your specific use cases
+  \item Combine automated and human evaluation
+  \item Monitor performance over time
+  \item A/B test model changes
+  \item Track both quality and cost metrics
+\end{itemize}
+
+\subsection{Summary}
+\label{sec:eval:summary}
+
+Effective LLM evaluation requires:
+\begin{itemize}
+  \item Understanding evaluation paradigms and their tradeoffs
+  \item Using standardized tools like \texttt{lm-eval-harness}
+  \item Considering alignment alongside capability
+  \item Avoiding common pitfalls (contamination, gaming)
+  \item Adapting to emerging evaluation needs (agentic systems)
+\end{itemize}
+
+As models become more capable, evaluation methodologies must evolve to capture new dimensions of performance, safety, and alignment.
+
+\end{document}
+

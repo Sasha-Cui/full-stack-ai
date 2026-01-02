@@ -1,0 +1,267 @@
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
+\begin{document}
+\section{LLM Inference and Deployment}
+\label{sec:inference}
+
+\subsection{Motivation and Background}
+\label{sec:inference:motivation}
+
+Inference is the process of using a trained model to generate outputs. While training often receives more attention in the research community, inference is where most of the value accrues in production systems. A single model may be trained once but serve billions of inference requests. Understanding efficient inference, deployment strategies, and optimization techniques is crucial for building practical AI systems.
+
+Modern LLM inference involves several key challenges:
+\begin{itemize}
+  \item \textbf{Cost management:} API calls can become expensive at scale, requiring careful model selection and optimization.
+  \item \textbf{Latency requirements:} Real-time applications demand low-latency responses.
+  \item \textbf{Throughput optimization:} Serving many concurrent users efficiently.
+  \item \textbf{Capability extension:} Basic LLMs need tools and external knowledge to be truly useful.
+  \item \textbf{Context management:} Handling long conversations and large documents.
+\end{itemize}
+
+\subsection{API-Based Inference}
+\label{sec:inference:api}
+
+The simplest way to run inference is through API services. Instead of managing infrastructure, researchers can access powerful models through standardized interfaces.
+
+\subsubsection{OpenRouter: Universal API Gateway}
+
+OpenRouter~\cite{openrouter} unifies multiple model providers into one API service, enabling seamless switching between different models and providers. This abstraction is valuable because:
+\begin{itemize}
+  \item \textbf{Provider diversity:} Access to GPT-5, Claude Sonnet 4, Gemini, DeepSeek, and many others through one interface.
+  \item \textbf{Automatic failover:} If one provider is down or rate-limited, requests can route to alternatives.
+  \item \textbf{Cost optimization:} Easy comparison and switching between providers based on price/performance.
+  \item \textbf{Model routing:} Automatic selection of best provider for a given model.
+\end{itemize}
+
+\subsubsection{Model Selection Criteria}
+
+Choosing the right model involves multiple tradeoffs:
+
+\paragraph{Cost Structure.} Models are typically priced per million tokens, with separate rates for input and output:
+\begin{itemize}
+  \item \textbf{DeepSeek V3.1 (free):} \$0/1M tokens (both input and output)
+  \item \textbf{Gemini 2.5 Flash:} \$0.30/1M input, \$2.50/1M output
+  \item \textbf{GPT-5:} \$5.00/1M input, \$15.00/1M output
+  \item \textbf{Claude Sonnet 4:} \$3.00/1M input, \$15.00/1M output
+\end{itemize}
+
+\paragraph{Context Length.} Different models support different maximum context windows:
+\begin{itemize}
+  \item \textbf{Short context (32K):} Sufficient for most conversations
+  \item \textbf{Medium context (128K):} Handles long documents
+  \item \textbf{Long context (1M+):} Entire codebases or book-length documents
+\end{itemize}
+
+\paragraph{Modalities.} Models support different input/output types:
+\begin{itemize}
+  \item \textbf{Text-to-text:} Traditional language models
+  \item \textbf{Text+image-to-text:} Vision-language models (e.g., GPT-5, Claude, Gemini)
+  \item \textbf{Text+image-to-text+image:} Multimodal generation (e.g., Gemini 2.5)
+\end{itemize}
+
+\paragraph{Reasoning Capabilities.} Some models support explicit reasoning modes:
+\begin{itemize}
+  \item \textbf{Standard generation:} Direct token-by-token generation
+  \item \textbf{Chain-of-thought:} Step-by-step reasoning in output
+  \item \textbf{Reasoning effort control:} Models like GPT-5 allow explicit control over reasoning depth
+\end{itemize}
+
+\subsection{Tool Calling and Function Integration}
+\label{sec:inference:tools}
+
+Tool calling extends LLM capabilities by allowing models to invoke external functions during generation. This paradigm shift transforms LLMs from pure text generators into orchestrators of complex workflows.
+
+\subsubsection{Why Tool Calling Matters}
+
+LLMs have inherent limitations:
+\begin{itemize}
+  \item \textbf{No real-time information:} Training data has a cutoff date
+  \item \textbf{No external knowledge:} Cannot access private databases or documents
+  \item \textbf{Weak at computation:} Arithmetic and symbolic reasoning are unreliable
+  \item \textbf{No actions:} Cannot directly interact with external systems
+\end{itemize}
+
+Tool calling addresses these limitations by giving models the ability to:
+\begin{itemize}
+  \item Search the web or databases
+  \item Execute code (Python, SQL, etc.)
+  \item Access APIs (weather, calendar, email)
+  \item Retrieve from knowledge bases
+  \item Perform deterministic computations
+\end{itemize}
+
+\subsubsection{Tool Calling Architecture}
+
+The typical tool calling flow follows this pattern:
+\begin{enumerate}
+  \item \textbf{Tool Definition:} Functions are described in a structured schema (JSON):
+  \begin{verbatim}
+  {
+    "name": "get_weather",
+    "description": "Get current weather for a location",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "location": {"type": "string"},
+        "units": {"type": "string", "enum": ["celsius", "fahrenheit"]}
+      }
+    }
+  }
+  \end{verbatim}
+
+  \item \textbf{Model Generation:} The LLM decides whether to call a tool and with what arguments.
+
+  \item \textbf{Tool Execution:} The application executes the function and returns results.
+
+  \item \textbf{Result Integration:} The model incorporates tool outputs into its response.
+\end{enumerate}
+
+\subsubsection{Sequential Tool Calling}
+
+Models can make multiple tool calls in sequence to accomplish complex tasks:
+\begin{verbatim}
+User: "What's the weather in the capital of France?"
+Model: [Calls search("capital of France")]
+Tool: "Paris"
+Model: [Calls get_weather("Paris")]
+Tool: "15°C, partly cloudy"
+Model: "The weather in Paris is 15°C and partly cloudy."
+\end{verbatim}
+
+This capability enables agentic behavior where models can break down complex tasks into multiple steps.
+
+\subsection{Model Context Protocol (MCP)}
+\label{sec:inference:mcp}
+
+Model Context Protocol~\cite{mcp} standardizes how LLMs interact with external tools and data sources. Unlike ad-hoc tool implementations, MCP provides:
+
+\begin{itemize}
+  \item \textbf{Standardized interface:} Consistent API across different tools
+  \item \textbf{Server-side execution:} Tools run on dedicated servers
+  \item \textbf{Authentication:} Built-in support for secure access
+  \item \textbf{Discovery:} Automatic tool schema detection
+\end{itemize}
+
+\subsubsection{MCP Servers}
+
+Popular MCP servers include:
+\begin{itemize}
+  \item \textbf{Notion:} Access to workspace documents and databases
+  \item \textbf{Google Calendar:} Event management and scheduling
+  \item \textbf{GitHub:} Repository access and code search
+  \item \textbf{Slack:} Team communication integration
+  \item \textbf{Custom servers:} Organizations can build domain-specific MCP servers
+\end{itemize}
+
+\subsection{Prompt Engineering and Optimization}
+\label{sec:inference:prompting}
+
+The inputs provided to LLMs dramatically affect output quality. Prompt engineering is the practice of carefully designing these inputs to achieve desired behaviors.
+
+\subsubsection{OpenAI Model Spec}
+
+OpenAI's Model Spec~\cite{openai_spec} defines a chain of command for instructions:
+\begin{enumerate}
+  \item \textbf{Root:} Model Spec root sections (unchangeable)
+  \item \textbf{System:} Model Spec system sections and system messages (OpenAI-controlled)
+  \item \textbf{Developer:} Developer messages and instructions (application-level)
+  \item \textbf{User:} User messages (end-user input)
+  \item \textbf{Guideline:} Model Spec guideline sections (suggestions)
+\end{enumerate}
+
+Developer-level instructions (often called ``system prompts'') allow applications to guide model behavior while respecting safety constraints.
+
+\subsubsection{Prompt Optimization with GEPA}
+
+Gradient-free Prompt Evolution Algorithm (GEPA)~\cite{gepa} automates prompt optimization:
+\begin{itemize}
+  \item \textbf{Iterative improvement:} Evolves prompts through multiple generations
+  \item \textbf{Metric-driven:} Optimizes for user-defined success criteria
+  \item \textbf{Reflection:} Uses model self-evaluation to guide improvements
+  \item \textbf{No gradients:} Works with any LLM API
+\end{itemize}
+
+The typical GEPA workflow:
+\begin{enumerate}
+  \item Define evaluation metric (e.g., accuracy on test set)
+  \item Start with baseline prompt
+  \item Model reflects on failures and suggests improvements
+  \item Test improved prompts
+  \item Iterate until convergence
+\end{enumerate}
+
+In experiments, GEPA can improve prompt performance by 10--40\% on challenging tasks like mathematical reasoning.
+
+\subsection{Context Window Management}
+\label{sec:inference:context}
+
+Long context windows enable powerful applications but introduce challenges:
+
+\subsubsection{Context Length vs. Quality}
+
+Models exhibit performance degradation with very long contexts:
+\begin{itemize}
+  \item \textbf{Lost in the middle:} Information in the middle of long contexts is harder to retrieve
+  \item \textbf{Attention dilution:} With limited attention capacity, relevant information gets less focus
+  \item \textbf{Context rot:} Performance degrades as context approaches maximum length
+\end{itemize}
+
+\subsubsection{Mitigation Strategies}
+
+Several techniques address context limitations:
+\begin{itemize}
+  \item \textbf{Conversation summarization:} Compress long histories into concise summaries
+  \item \textbf{Retrieval augmentation:} Fetch only relevant context on-demand
+  \item \textbf{Hierarchical processing:} Process documents in chunks with aggregation
+  \item \textbf{Attention steering:} Explicitly guide model focus to important sections
+\end{itemize}
+
+\subsection{Practical Considerations}
+\label{sec:inference:practical}
+
+\subsubsection{Cost Management}
+
+Inference costs can scale rapidly. Key strategies:
+\begin{itemize}
+  \item \textbf{Model routing:} Use cheaper models for simple queries, expensive ones for hard problems
+  \item \textbf{Caching:} Store and reuse responses for common queries
+  \item \textbf{Batching:} Group multiple requests for efficiency
+  \item \textbf{Output length limits:} Constrain max\_tokens to control costs
+\end{itemize}
+
+\subsubsection{Latency Optimization}
+
+For real-time applications:
+\begin{itemize}
+  \item \textbf{Streaming:} Display tokens as they're generated
+  \item \textbf{Speculative decoding:} Generate multiple candidates in parallel
+  \item \textbf{Model selection:} Use smaller, faster models when appropriate
+  \item \textbf{Regional providers:} Choose geographically close API endpoints
+\end{itemize}
+
+\subsubsection{Reliability}
+
+Production systems need robust error handling:
+\begin{itemize}
+  \item \textbf{Rate limit handling:} Implement exponential backoff
+  \item \textbf{Failover:} Route to alternative providers when needed
+  \item \textbf{Validation:} Check output format and content
+  \item \textbf{Monitoring:} Track costs, latency, and error rates
+\end{itemize}
+
+\subsection{Summary}
+\label{sec:inference:summary}
+
+Effective LLM inference requires understanding:
+\begin{itemize}
+  \item Model selection tradeoffs (cost, performance, capabilities)
+  \item Tool calling for extending capabilities
+  \item Prompt engineering for optimal outputs
+  \item Context management for long conversations
+  \item Practical considerations for production deployment
+\end{itemize}
+
+The inference ecosystem continues to evolve rapidly, with new models, techniques, and best practices emerging regularly. The skills covered in this section provide a foundation for building robust, cost-effective LLM applications.
+
+\end{document}
+
