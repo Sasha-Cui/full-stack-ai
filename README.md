@@ -1,4 +1,5 @@
 # Becoming Full-Stack AI Researchers
+# CURRENTLY UNDER CONSTRUCTION.  SOME OF THE CODE HAS NOT BEEN FULLY REVIEWED OR VERIFIED.  PLEASE COME BACK A LITTLE LATER.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
