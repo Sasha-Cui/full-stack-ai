@@ -1,5 +1,5 @@
 # Becoming Full-Stack AI Researchers
-# CURRENTLY UNDER CONSTRUCTION.  SOME OF THE CODE HAS NOT BEEN FULLY REVIEWED OR VERIFIED.  PLEASE COME BACK A LITTLE LATER.
+# CURRENTLY UNDER CONSTRUCTION.  THE CODE HAS NOT BEEN FULLY REVIEWED OR VERIFIED.  PLEASE COME BACK A LITTLE LATER.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -311,35 +311,8 @@ python evaluate_gsm8k.py --model_path <path> --data_path <path>
 ```bash
 # Example SLURM job submission
 cd MWEs/verl
-sbatch ppo_gsm8k.sbatch
+sbatch ppo_gsm8k.sh
 ```
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how you can help:
-
-### Ways to Contribute
-1. **Report Issues**: Found a bug? Open an issue!
-2. **Improve Documentation**: Fix typos, add examples, clarify instructions
-3. **Add Examples**: Contribute new MWEs or extend existing ones
-4. **Enhance Tutorials**: Improve the tutorial paper sections
-
-### Contribution Guidelines
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Test thoroughly
-5. Commit with clear messages (`git commit -m 'Add amazing feature'`)
-6. Push to your branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
-### Code Style
-- Follow PEP 8 for Python code
-- Add docstrings to functions and classes
-- Include comments for complex logic
-- Update READMEs when adding new feature
 
 ---
 
@@ -360,11 +333,6 @@ We welcome contributions! Here's how you can help:
 - [PagedAttention (vLLM)](https://arxiv.org/abs/2309.06180)
 - [ZeRO: DeepSpeed Optimization](https://arxiv.org/abs/1910.02054)
 - [Scaling Laws for Neural LMs](https://arxiv.org/abs/2001.08361)
-
-### Community
-- [Discord](#) (Coming soon)
-- [Mailing List](#) (Coming soon)
-- Office Hours: Every other Friday @ 100 College Street, Yale
 
 ---
 
@@ -402,18 +370,18 @@ If you use these materials in your research or teaching, please cite:
 
 ```bibtex
 @misc{fullstackai2025,
-  title={Becoming Full-Stack AI Researchers: A Comprehensive Tutorial},
-  author={Cui, Sasha and Le, Quan and Mader, Alexander and Sanok Dufallo, Will},
-  year={2025},
-  institution={Yale University},
-  howpublished={\url{https://github.com/sashacui/full-stack-ai}},
-  note={Fall 2025 Working Group}
+  title        = {Becoming Full-Stack AI Researchers: A Comprehensive Tutorial},
+  author       = {Cui, Sasha and Mader, Alexander and Typaldos, George and Bai, Donglu and Kazdan, Josh and Hu, Xinyang and Wei, Jeffrey and Feng, Austin and Lin, Oliver and Zhu, Chris and Vishnempet, Shivkumar and Sun, Xingzhi and Le, Quan and Luo, Ping and Lafferty, John and Sekhon, Jasjeet},
+  year         = {2025},
+  institution  = {Yale University},
+  howpublished = {\url{https://github.com/sashacui/full-stack-ai}},
+  note         = {Fall 2025 Working Group}
 }
 ```
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 ### Institutions
 - **Wu Tsai Institute at Yale University** - GPU resources and classroom space
@@ -422,20 +390,37 @@ If you use these materials in your research or teaching, please cite:
 - **Yale Department of Philosophy**
 - **Misha High Performance Computing Cluster**
 
-### Contributors
-- **Sasha Cui** (sasha.cui@yale.edu) - Project Lead, Statistics & Data Science
-- **Quan Le** (quan.le@yale.edu) - Statistics & Data Science
-- **Alexander Mader** (alexander.mader@yale.edu) - Physics
-- **Will Sanok Dufallo** (will.sanokdufallo@yale.edu) - Philosophy
+### Contributors (Fall 2025 Working Group)
+
+**Session leads (by date)**
+
+**23 Sept**
+- Inference & APIs, Tools, MCP, Prompt Engineering — Alexander Mader
+- Distributed Training (Ray, PyTorch vs JAX vs TensorFlow) — George Typaldos, Sasha Cui
+
+**7 Oct**
+- SFT (PEFT, Lightning) — Donglu Bai
+- Pretraining and Model Collapse — Josh Kazdan
+
+**21 Oct**
+- Serving (vLLM) & Distributed Training (DeepSpeed) — Xinyang Hu
+- Scaling Laws — Alexander Mader
+
+**4 Nov**
+- Robotics (OpenVLA, RoboSuite, RoboVerse, LeRobot) — Jeffrey Wei, Austin Feng, Oliver Lin
+- Model Evaluation, Benchmarking, RLHF, RLAIF (lm-eval) — Chris Zhu
+
+**18 Nov**
+- Agents (LangChain, ReAct workflows) — Shivkumar Vishnempet, Xinyang Hu
+- Alignment and Interpretability — Oliver Lin
+
+**2 Dec**
+- RL (VERL, Q-function Monte Carlo), Containers (Docker, Apptainer) — Xingzhi Sun, Quan Le, Donglu Bai
+- Jailbreaking — Josh Kazdan
+
 
 ### Advisors & Supporters
 We thank Ping Luo, John Lafferty, Linjun Zhang, Anurag Kashyap, Theo Saarinen, and Yuxuan Zhu for helpful comments and suggestions.
-
-### Open Source Community
-Special thanks to the developers and maintainers of:
-- PyTorch, Hugging Face, vLLM, Ray, DeepSpeed, VERL
-- Jupyter, NumPy, Pandas, Matplotlib, Scikit-learn
-- And the entire open-source AI/ML community
 
 ---
 
@@ -447,16 +432,8 @@ Special thanks to the developers and maintainers of:
 
 ---
 
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 <div align="center">
 
 **[⬆ Back to Top](#becoming-full-stack-ai-researchers)**
-
-Made with ❤️ at Yale University
 
 </div>
