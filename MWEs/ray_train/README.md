@@ -1,50 +1,63 @@
-# Distrubuted Training with Ray
+# Distributed Training with Ray
 
-This folder lists 3 examples of distributed model training that utilizes the [Ray](https://docs.ray.io/en/latest/index.html) ecosystem.
+This folder contains three minimal examples of distributed training using the Ray ecosystem:
 
-## Examples
-
-1. [Data-Parallel Pytorch](https://docs.ray.io/en/latest/train/examples/pytorch/distributing-pytorch/README.html#step-2-distribute-training-to-multiple-machines-with-ray-train): [train_cifar](./train_cifar.py)
-
-2. [ZeRO-3 Deepspeed](https://docs.ray.io/en/latest/train/deepspeed.html): [zero_deepspeed](./zero_deepspeed.py)
-
-3. Model Parallel: [model_par](./model_par.py)
+1. **Data-Parallel PyTorch**: `train_cifar.py`
+2. **ZeRO-3 DeepSpeed**: `zero_deepspeed.py`
+3. **Pipeline Parallelism**: `model_par.py`
 
 ## Installation
 
-- Create and activate an isolated Python environment (e.g. using [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)):
+1. Create and activate an environment:
+```bash
+conda create -n raytrain python=3.10
+conda activate raytrain
+```
 
-    ```bash
-    conda create --name raytrain python=3
-    conda activate raytrain
-    ```
+2. Install Ray:
+```bash
+pip install -U "ray[data,train]"
+```
 
-- Install Ray following the [official docs](https://docs.ray.io/en/latest/ray-overview/installation.html):
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-    ```bash
-    pip install -U "ray[data,train,tune,serve]"
-    ```
+4. Install PyTorch for your CUDA version:
+```bash
+# Example for CUDA 12.1
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
 
-- Find CUDA compute capability:
+## Running the Examples
 
-   ```bash
-   nvidia-smi --query-gpu=compute_cap --format=csv
+### 1. Data-Parallel CIFAR-10 (CPU or GPU)
+```bash
+python train_cifar.py
+```
+Notes:
+- Adjust `num_workers` and `use_gpu` in `train_cifar.py` as needed.
 
-- Find CUDA-toolkit version:
+### 2. ZeRO-3 DeepSpeed (GPU required)
+```bash
+python zero_deepspeed.py
+```
+Notes:
+- Default config expects 4 GPUs. Update `num_workers` in `zero_deepspeed.py` if needed.
 
-    ```bash
-    nvcc --version
-    // or
-    nvidia-smi | grep "CUDA Version"
-    
-- Install proper torch version for cuda-toolkit via [pytorch.org](https://pytorch.org/get-started/locally/)
+### 3. Pipeline Parallelism (2+ GPUs required)
+```bash
+python model_par.py
+```
+Notes:
+- Requires at least 2 GPUs. The script checks this at runtime.
 
-- Install missing dependencies from [requirements.txt](./requirements.txt):
+## Troubleshooting
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+- If you see CUDA errors, verify your CUDA toolkit and PyTorch install match.
+- If you run on CPU-only, use the data-parallel example and set `use_gpu=False`.
 
-## Accompanying Slides
+## Slides
 
-Find respective slides about Ray at [ray_train.pdf](../../slides/ray_train.pdf).
+See `../../slides/ray_train.pdf` for accompanying material.

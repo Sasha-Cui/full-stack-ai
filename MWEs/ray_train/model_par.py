@@ -55,7 +55,8 @@ def train_func(config):
 
     # Set device
     device = f"cuda:{local_rank}" if torch.cuda.is_available() else "cpu"
-    torch.cuda.set_device(local_rank)
+    if torch.cuda.is_available():
+        torch.cuda.set_device(local_rank)
 
     # Initialize DeepSpeed distributed backend explicitly for PipelineModule
     if not dist.is_initialized():
@@ -200,7 +201,17 @@ def train_func(config):
 # 3. Main: Run with Ray
 # -----------------------------
 if __name__ == "__main__":
-    ray.init(num_gpus=2)
+    num_workers = 2
+    num_stages = num_workers
+
+    if not torch.cuda.is_available():
+        raise SystemExit("This example requires CUDA GPUs for pipeline parallelism.")
+    if torch.cuda.device_count() < num_workers:
+        raise SystemExit(
+            f"Need at least {num_workers} GPUs, but found {torch.cuda.device_count()}."
+        )
+
+    ray.init(num_gpus=num_workers)
     print("Ray initialized for pipeline-parallel training")
 
     # DeepSpeed config for pipeline parallelism + ZeRO stage 1
@@ -231,13 +242,13 @@ if __name__ == "__main__":
     # Training configuration
     train_config = {
         "epochs": 2,  # Reduced epochs for demo
-        "num_stages": 2,  # Number of pipeline stages (should match num_workers)
+        "num_stages": num_stages,  # Must match num_workers for pipeline parallelism
         "deepspeed_config": deepspeed_config,
     }
 
     # Scaling configuration - one worker per pipeline stage
     scaling_config = ScalingConfig(
-        num_workers=2,  # Must match num_stages for pipeline parallelism
+        num_workers=num_workers,  # Must match num_stages for pipeline parallelism
         use_gpu=True,
         resources_per_worker={"GPU": 1},  # One GPU per worker/stage
     )

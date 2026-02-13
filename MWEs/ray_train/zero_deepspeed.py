@@ -28,6 +28,7 @@ def train_func(config):
     num_epochs = config["num_epochs"]
     train_batch_size = config["train_batch_size"]
     eval_batch_size = config["eval_batch_size"]
+    deepspeed_config = config["deepspeed_config"]
 
     # Instantiate the Model
     model = AutoModelForSequenceClassification.from_pretrained(

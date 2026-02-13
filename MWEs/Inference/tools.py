@@ -1,5 +1,6 @@
 import json
 import random
+from pathlib import Path
 
 def router(function_name, function_arguments):
     if function_name == "random_number_generator":
@@ -10,7 +11,8 @@ def router(function_name, function_arguments):
 # Load tools from JSON file
 def load_tools():
     try:
-        with open('tools.json', 'r') as file:
+        tools_path = Path(__file__).with_name("tools.json")
+        with tools_path.open("r") as file:
             tools = json.load(file)
         return tools
     except FileNotFoundError:

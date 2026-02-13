@@ -21,10 +21,12 @@ def get_dataloaders(batch_size):
     # Transform to normalize the input images.
     transform = transforms.Compose([ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-    with FileLock(os.path.expanduser("~/data.lock")):
+    data_root = os.path.expanduser("~/data")
+    lock_path = os.path.expanduser("~/data.lock")
+    with FileLock(lock_path):
         # Download training data from open datasets.
         training_data = datasets.CIFAR10(
-            root="~/data",
+            root=data_root,
             train=True,
             download=True,
             transform=transform,
@@ -32,7 +34,7 @@ def get_dataloaders(batch_size):
 
         # Download test data from open datasets.
         testing_data = datasets.CIFAR10(
-            root="~/data",
+            root=data_root,
             train=False,
             download=True,
             transform=transform,
@@ -84,7 +86,8 @@ def train_func_per_worker(config):
     for epoch in range(epochs):
         if ray.train.get_context().get_world_size() > 1:
             # Required for the distributed sampler to shuffle properly across epochs.
-            train_dataloader.sampler.set_epoch(epoch)
+            if hasattr(train_dataloader.sampler, "set_epoch"):
+                train_dataloader.sampler.set_epoch(epoch)
 
         model.train()
         for X, y in tqdm(train_dataloader, desc=f"Train Epoch {epoch}"):
@@ -106,14 +109,15 @@ def train_func_per_worker(config):
                 num_total += y.shape[0]
                 num_correct += (pred.argmax(1) == y).sum().item()
 
-        valid_loss /= len(train_dataloader)
+        valid_loss /= max(len(valid_dataloader), 1)
         accuracy = num_correct / num_total
 
         # [3] (Optional) Report checkpoints and attached metrics to Ray Train.
         # ====================================================================
         with tempfile.TemporaryDirectory() as temp_checkpoint_dir:
+            model_to_save = model.module if hasattr(model, "module") else model
             torch.save(
-                model.module.state_dict(),
+                model_to_save.state_dict(),
                 os.path.join(temp_checkpoint_dir, "model.pt")
             )
             ray.train.report(

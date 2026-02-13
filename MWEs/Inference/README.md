@@ -190,7 +190,7 @@ jupyter lab inference.ipynb
 - **Cost**: ~$0.30 (due to multiple optimization iterations)
 - **Time**: 30-60 minutes
 - **Prerequisites**: OPENAI_API_KEY
-- **Note**: Computationally intensive, uses GPT-4 for optimization
+- **Note**: Computationally intensive; uses OpenAI models (see notebook for exact model IDs)
 
 ## Expected Total Cost
 - **Minimum** (skipping GEPA): ~$0.10
@@ -273,4 +273,3 @@ If you use these materials in your research or teaching, please cite:
   institution={Yale University}
 }
 ```
-

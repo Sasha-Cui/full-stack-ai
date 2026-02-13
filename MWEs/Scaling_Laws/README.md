@@ -132,10 +132,10 @@ Where:
 ### 1. Model Development
 ```python
 # Given a compute budget C, determine optimal N and D
-# Chinchilla approach: Scale both equally
+# Chinchilla approach: Scale both equally (pseudo-code)
 C_target = 1e24  # FLOPs
-N_optimal = compute_optimal_params(C_target)
-D_optimal = compute_optimal_tokens(C_target)
+N_optimal = compute_optimal_params(C_target)  # implement based on fitted scaling law
+D_optimal = compute_optimal_tokens(C_target)  # implement based on fitted scaling law
 ```
 
 ### 2. Dataset Curation
@@ -148,7 +148,7 @@ Understanding when to prioritize:
 ```python
 # Predict final loss given scaling parameters
 def predict_loss(N, D, C):
-    # Based on fitted scaling laws
+    # Based on fitted scaling laws (example structure)
     return alpha_0 / (N**alpha_N * D**alpha_D * C**alpha_C)
 ```
 
@@ -273,4 +273,3 @@ If you use these materials in your research or teaching, please cite:
 - **LoRA Tutorial**: Parameter-efficient scaling through adaptation
 - **vLLM Tutorial**: Efficient inference for scaled models
 - **VERL Tutorial**: Scaling through reinforcement learning
-

@@ -27,7 +27,6 @@ This tutorial explores the intersection of large language models and robotics, f
 - `frameworks.ipynb` - Main tutorial notebook
 - `media/` - Videos and images of robot rollouts
 - `Robotics.pdf` - Comprehensive slides
-- `TODO.md` - Development roadmap
 
 ## Installation
 ```bash
@@ -55,8 +54,7 @@ jupyter notebook frameworks.ipynb
 - Evaluate embodied agents
 
 ## Status
-This module is under active development. See `TODO.md` for planned additions.
+This module is under active development. Expect incremental updates as frameworks evolve.
 
 ## Contributing
 Part of the Full-Stack AI working group at Yale University.
-

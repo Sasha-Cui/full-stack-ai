@@ -36,7 +36,7 @@ def metric(example, prediction, trace=None, pred_name=None, pred_trace=None):
     correct_answer = int(example['answer'])
     try:
         llm_answer = int(prediction.answer)
-    except ValueError as e:
+    except (ValueError, TypeError, AttributeError):
         return 0
     return int(correct_answer == llm_answer)
 
@@ -46,8 +46,13 @@ def metric_with_feedback(example, prediction, trace=None, pred_name=None, pred_t
     written_solution = example.get('solution', '')
     try:
         llm_answer = int(prediction.answer)
-    except ValueError as e:
-        feedback_text = f"The final answer must be a valid integer and nothing else. You responded with '{prediction.answer}', which couldn't be parsed as a python integer. Please ensure your answer is a valid integer without any additional text or formatting."
+    except (ValueError, TypeError, AttributeError):
+        raw_answer = getattr(prediction, "answer", "")
+        feedback_text = (
+            "The final answer must be a valid integer and nothing else. "
+            f"You responded with '{raw_answer}', which couldn't be parsed as a python integer. "
+            "Please ensure your answer is a valid integer without any additional text or formatting."
+        )
         feedback_text += f" The correct answer is '{correct_answer}'."
         if written_solution:
             feedback_text += f" Here's the full step-by-step solution:\n{written_solution}\n\nThink about what takeaways you can learn from this solution to improve your future answers and approach to similar problems and ensure your final answer is a valid integer."
