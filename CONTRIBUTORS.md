@@ -13,7 +13,6 @@ These names appear explicitly in the working-group syllabus:
 | Sasha Cui | Working-group lead and co-author. Co-led distributed-training and framework-comparison material tied most directly to `MWEs/pytorch/` and `MWEs/ray_train/`, and coordinated the broader repository/tutorial effort. |
 | Quan Le | Co-author and organizer. Most directly associated with the reinforcement-learning and container-oriented work reflected in `MWEs/verl/`. |
 | Alexander Mader | Co-author and organizer. Most directly associated with `MWEs/Inference/` and `MWEs/Scaling_Laws/`. |
-| Will Sanok Dufallo | Co-author and organizer listed in the syllabus. No standalone MWE in the current repository is explicitly attributed to him in the historical module schedule. |
 
 ## MWE / Module Contributor Map
 
