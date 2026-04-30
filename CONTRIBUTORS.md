@@ -4,16 +4,17 @@ This file records contributor attribution at the module and teaching-material le
 
 It is based on the historical working-group schedule, notebook bylines, and syllabus materials already present in the repository. It should be read as topic or module attribution, not as a line-by-line code ownership claim.
 
-## Core Authors And Organizers
+## Core Authors And Senior Contributors
 
-These names appear explicitly in the working-group syllabus:
+These are the current named authors and senior contributors reflected in the repository materials:
 
 | Name | Summary |
 | --- | --- |
 | Sasha Cui | Working-group lead and co-author. Co-led distributed-training and framework-comparison material tied most directly to `MWEs/pytorch/` and `MWEs/ray_train/`, and coordinated the broader repository/tutorial effort. |
 | Quan Le | Co-author and organizer. Most directly associated with the reinforcement-learning and container-oriented work reflected in `MWEs/verl/`. |
 | Alexander Mader | Co-author and organizer. Most directly associated with `MWEs/Inference/` and `MWEs/Scaling_Laws/`. |
-| Will Sanok Dufallo | Co-author and organizer listed in the syllabus. No standalone MWE in the current repository is explicitly attributed to him in the historical module schedule. |
+| Ping Luo | Senior contributor and adviser. Helped shape the project and broader research direction, but is not tied to a single standalone MWE in the current repo. |
+| John Lafferty | Senior contributor and adviser. Helped shape the project and broader research direction, but is not tied to a single standalone MWE in the current repo. |
 
 ## MWE / Module Contributor Map
 

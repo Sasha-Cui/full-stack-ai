@@ -134,12 +134,13 @@ Model pricing, API availability, provider routing, and some framework install in
 
 ## Authors And Contributors
 
-Core working-group authors listed in the original syllabus materials:
+Current named authors and senior contributors for the project:
 
 - Sasha Cui
 - Quan Le
 - Alexander Mader
-- Will Sanok Dufallo
+- Ping Luo
+- John Lafferty
 
 Module-level contributor attribution for the MWEs is summarized in [CONTRIBUTORS.md](CONTRIBUTORS.md).
 
@@ -153,6 +154,15 @@ The working group website credits the following organizations and advisers:
 - **Technical Support Adviser**: Ping Luo, Yale University, Wu Tsai Institute.
 
 The website also notes that the working group had access to an experimental GPU cluster hosted in The Matrix at the Wu Tsai Institute.
+
+## Current Organizers
+
+The current run of the event is being organized by:
+
+- [Dongyu Gong](https://daniel-gong.github.io/) — `dongyu.gong@yale.edu`
+- [Xiaowei Ou](https://www.linkedin.com/in/xiaowei-ou-a7a7951ba/) — `xiaowei.ou@yale.edu`
+
+If you want more information about the current run, contact them directly at their Yale email addresses.
 
 ## Slides And Paper Draft
 
