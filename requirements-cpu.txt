@@ -1,0 +1,25 @@
+# CPU-friendly environment for the locally validated notebooks.
+#
+# Covers:
+# - MWEs/pytorch
+# - MWEs/Scaling_Laws
+# - MWEs/agentic_rl_workshop
+# - MWEs/LoRA_tutorials (with the optional deep-validation stack)
+
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+seaborn
+memory_profiler
+jupyter
+ipykernel
+nbformat
+nbclient
+torch
+torchvision
+scanpy
+leidenalg
+python-igraph
+lightning

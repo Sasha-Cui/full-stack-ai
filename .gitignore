@@ -206,3 +206,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local validation and notebook outputs
+.validation/
+MWEs/LoRA_tutorials/data/
+MWEs/LoRA_tutorials/logs/
+MWEs/pytorch/runs_log.csv
+
+# LaTeX build artifacts
+*.aux
+*.bcf
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml

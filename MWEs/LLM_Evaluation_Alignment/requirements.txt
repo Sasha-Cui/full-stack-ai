@@ -1,0 +1,8 @@
+jupyter
+ipykernel
+matplotlib
+pandas
+torch
+transformers
+datasets
+lm-eval

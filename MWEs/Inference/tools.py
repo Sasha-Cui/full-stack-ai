@@ -1,27 +1,39 @@
+from __future__ import annotations
+
 import json
 import random
 from pathlib import Path
+from typing import Any, Callable
 
-def router(function_name, function_arguments):
-    if function_name == "random_number_generator":
-        return random_number_generator(**function_arguments)
-    else:
-        return "Function not found"
 
-# Load tools from JSON file
-def load_tools():
+def random_number_generator(min: int, max: int) -> int:
+    if int(min) != min or int(max) != max:
+        raise ValueError("random_number_generator expects integer bounds.")
+    if min > max:
+        raise ValueError("'min' must be less than or equal to 'max'.")
+    return random.randint(int(min), int(max))
+
+
+TOOL_REGISTRY: dict[str, Callable[..., Any]] = {
+    "random_number_generator": random_number_generator,
+}
+
+
+def router(function_name: str, function_arguments: dict[str, Any]) -> Any:
     try:
-        tools_path = Path(__file__).with_name("tools.json")
-        with tools_path.open("r") as file:
-            tools = json.load(file)
-        return tools
+        tool = TOOL_REGISTRY[function_name]
+    except KeyError as exc:
+        raise ValueError(f"Unknown tool: {function_name}") from exc
+    return tool(**function_arguments)
+
+
+def load_tools() -> list[dict[str, Any]]:
+    tools_path = Path(__file__).with_name("tools.json")
+    try:
+        with tools_path.open("r", encoding="utf-8") as file:
+            return json.load(file)
     except FileNotFoundError:
-        print("⚠️  tools.json not found. Running without tools.")
+        print("Warning: tools.json not found. Running without tools.")
         return []
-    except json.JSONDecodeError:
-        print("⚠️  Error parsing tools.json. Check JSON syntax.")
-        return []
-
-
-def random_number_generator(min: int, max: int):
-    return random.randint(min, max) 
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON in {tools_path}") from exc

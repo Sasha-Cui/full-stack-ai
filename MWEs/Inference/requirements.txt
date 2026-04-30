@@ -1,0 +1,13 @@
+python-dotenv
+requests
+openai
+dspy-ai
+datasets
+transformers
+accelerate
+pandas
+numpy
+matplotlib
+seaborn
+jupyter
+ipykernel

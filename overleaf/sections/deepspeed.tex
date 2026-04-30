@@ -28,7 +28,7 @@ Component & What it is & Notes \\ \hline
 \textbf{Temporary Buffers} & Workspace for matmuls/communication & dynamic overhead \\ \hline
 \end{tabular}
 
-With Adam, per-GPU memory can be \textbf{4–6×} the model size.
+With Adam, per-GPU memory can be \textbf{4-6x} the model size.
 
 \subsubsection{3) Why naïve data parallel wastes memory}
 Every GPU \textbf{replicates}:
@@ -96,7 +96,7 @@ So if we split the vector of parameters into chunks, each chunk can be updated e
 
 Because the optimizer states are independent:
 - We can shard the $m$ and $v$ tensors across GPUs.
-- GPU 0 stores $m,v$ for parameters $[0 – 25\%]$, GPU 1 for $[25 – 50\%]$, etc.
+- GPU 0 stores $m,v$ for parameters $[0-25\%]$, GPU 1 for $[25-50\%]$, etc.
 - Each GPU updates its subset of parameters using its own local optimizer states.
 
 \textbf{Naïve DP:}
@@ -195,15 +195,15 @@ That’s why ZeRO-3 gives the biggest memory win.
 ZeRO Stage & What’s sharded & Memory reduction \\ \hline
 1 & Optimizer states & $\approx$ 2× \\ \hline
 2 & + Gradients & $\approx$ 3× \\ \hline
-3 & + Parameters & $\approx$ 4–8× \\ \hline
+3 & + Parameters & about 4-8x \\ \hline
 \end{tabular}
 
 \subsubsection{Illustration (conceptual)}
 \begin{verbatim}
 Naive DP (replicated):   [full][full][full]
-ZeRO-1 (opt sharded):    [P,G, O₁][P,G, O₂][P,G, O₃]
-ZeRO-2 (opt+grad shard): [P, G₁,O₁][P, G₂,O₂][P, G₃,O₃]
-ZeRO-3 (all sharded):    [P₁,G₁,O₁][P₂,G₂,O₂][P₃,G₃,O₃]
+ZeRO-1 (opt sharded):    [P,G, O1][P,G, O2][P,G, O3]
+ZeRO-2 (opt+grad shard): [P, G1,O1][P, G2,O2][P, G3,O3]
+ZeRO-3 (all sharded):    [P1,G1,O1][P2,G2,O2][P3,G3,O3]
 P=params, G=grads, O=optimizer shards
 \end{verbatim}
 

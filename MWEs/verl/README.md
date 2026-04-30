@@ -1,118 +1,46 @@
-# VERL PPO GSM8K Tutorial
+# VERL PPO GSM8K
 
-This walkthrough trains a small model with VERL PPO on GSM8K using the official vLLM container image.
+This folder is a container-first walkthrough for PPO fine-tuning with VERL plus a pair of helper scripts for evaluation and qualitative comparison.
 
-## Prerequisites
-- NVIDIA GPU
-- Apptainer (or Docker, if you adapt the commands)
-- Optional: Weights & Biases account for logging
+## Files
 
-## 1. Pull the Container and Create an Overlay
+- `evaluate_gsm8k.py`: evaluate a base or trained model on GSM8K-format parquet data.
+- `compare_results.py`: compare baseline and fine-tuned generations.
+- `ppo_gsm8k.sbatch`: example SLURM submission file.
+- `requirements.txt`: helper-script dependencies.
+
+## Install The Helper Script Dependencies
+
 ```bash
-WORKDIR=$HOME/verl_tutorial
-mkdir -p "$WORKDIR"
-cd "$WORKDIR"
-
-apptainer pull verl_vllm.sif docker://verlai/verl:vegalita-vllm
-apptainer overlay create --fakeroot --size 5120 verl_overlay.img
+pip install -r requirements.txt
 ```
 
-## 2. Start the Container
-```bash
-apptainer shell \
-  --nv \
-  --fakeroot \
-  --overlay "$WORKDIR/verl_overlay.img" \
-  --bind "$WORKDIR:$WORKDIR" \
-  --bind /tmp:/tmp \
-  "$WORKDIR/verl_vllm.sif"
-```
+The full PPO workflow itself is still based on the VERL container instructions, not a local pip install.
 
-## 3. Install VERL and Configure Caches (inside the container)
-```bash
-cd "$WORKDIR"
-git clone https://github.com/volcengine/verl
-cd verl
-pip3 install --no-deps -e .
+## Training Workflow
 
-# Optional: W&B logging
-wandb login
+The intended path is:
 
-# HuggingFace cache
-export HF_HOME="$WORKDIR/hf_cache"
-```
+1. Pull or build the VERL container.
+2. Download GSM8K and warm the base model.
+3. Launch PPO training inside the container.
+4. Merge the saved checkpoint.
+5. Run `evaluate_gsm8k.py`.
+6. Run `compare_results.py`.
 
-## 4. Download GSM8K and Warm the Model
-```bash
-python3 -B examples/data_preprocess/gsm8k.py --local_save_dir "$WORKDIR/data/gsm8k"
-python3 -B -c "import transformers; transformers.pipeline('text-generation', model='Qwen/Qwen2.5-0.5B-Instruct')"
-```
+## Validation
 
-## 5. Train with PPO
-```bash
-PYTHONUNBUFFERED=1 python3 -m verl.trainer.main_ppo \
-  data.train_files="$WORKDIR/data/gsm8k/train.parquet" \
-  data.val_files="$WORKDIR/data/gsm8k/test.parquet" \
-  data.train_batch_size=256 \
-  data.max_prompt_length=512 \
-  data.max_response_length=512 \
-  actor_rollout_ref.model.path=Qwen/Qwen2.5-0.5B-Instruct \
-  actor_rollout_ref.actor.optim.lr=1e-6 \
-  actor_rollout_ref.actor.ppo_mini_batch_size=64 \
-  actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=4 \
-  actor_rollout_ref.rollout.name=vllm \
-  actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=8 \
-  actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
-  actor_rollout_ref.rollout.gpu_memory_utilization=0.4 \
-  actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=4 \
-  critic.optim.lr=1e-5 \
-  critic.model.path=Qwen/Qwen2.5-0.5B-Instruct \
-  critic.ppo_micro_batch_size_per_gpu=4 \
-  algorithm.kl_ctrl.kl_coef=0.001 \
-  trainer.logger='["console","wandb"]' \
-  trainer.project_name=verl_tutorial \
-  trainer.experiment_name=qwen25_ppo_gsm8k \
-  trainer.val_before_train=False \
-  trainer.n_gpus_per_node=1 \
-  trainer.nnodes=1 \
-  trainer.save_freq=10 \
-  trainer.test_freq=10 \
-  trainer.total_epochs=15 2>&1 | tee "$WORKDIR/verl_demo.log"
-```
+- `evaluate_gsm8k.py` and `compare_results.py` compile cleanly.
+- The helper scripts now have better path validation and clearer CLI behavior.
+- The full VERL PPO workflow was not executed locally because it requires the containerized GPU stack.
 
-Notes:
-- If you hit OOM, reduce `data.train_batch_size` and `actor_rollout_ref.rollout.gpu_memory_utilization`.
-- For multi-GPU runs, increase `trainer.n_gpus_per_node` and update batch sizes accordingly.
+## Important Notes
 
-## 6. Merge the Trained Checkpoint
-```bash
-python3 -m verl.model_merger merge \
-  --backend fsdp \
-  --local_dir checkpoints/verl_tutorial/qwen25_ppo_gsm8k/global_step_435/actor \
-  --target_dir checkpoints/verl_tutorial/qwen25_ppo_gsm8k/global_step_435/actor/huggingface
-```
+- The correct batch-submission file in this folder is `ppo_gsm8k.sbatch`.
+- `evaluate_gsm8k.py` requires a parquet dataset and a vLLM-compatible model path.
+- Full training is best treated as an advanced systems exercise, not a beginner entry point.
 
-## 7. Evaluate Trained vs Baseline
-Trained model:
-```bash
-python evaluate_gsm8k.py \
-  --model_path ./checkpoints/verl_tutorial/qwen25_ppo_gsm8k/global_step_435/actor/huggingface \
-  --data_path "$WORKDIR/data/gsm8k/test.parquet" \
-  --output trained_outputs.jsonl
-```
+## References
 
-Baseline:
-```bash
-python evaluate_gsm8k.py \
-  --model_path Qwen/Qwen2.5-0.5B-Instruct \
-  --data_path "$WORKDIR/data/gsm8k/test.parquet" \
-  --output base_outputs.jsonl
-```
-
-## 8. Compare Results
-```bash
-python compare_results.py --base base_outputs.jsonl --trained trained_outputs.jsonl -n 5
-```
-
-## 9. (Optional) Low-Rank Analysis
-See https://github.com/xingzhis/lm_training_rank for a low-rank analysis workflow.
+- [VERL repository](https://github.com/volcengine/verl)
+- [Qwen models](https://huggingface.co/Qwen)

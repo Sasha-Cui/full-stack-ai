@@ -1,0 +1,9 @@
+numpy
+pandas
+scipy
+matplotlib
+memory_profiler
+jupyter
+ipykernel
+torch
+torchvision

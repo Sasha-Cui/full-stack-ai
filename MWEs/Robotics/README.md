@@ -1,60 +1,51 @@
-# Robotics and Vision-Language-Action Models
+# Robotics And VLA Frameworks
 
-## Overview
-This tutorial explores the intersection of large language models and robotics, focusing on Vision-Language-Action (VLA) frameworks that enable embodied AI agents.
+This folder is a survey-style bridge from LLM systems into embodied AI and VLA tooling.
 
-## Topics Covered
+## Files
 
-### 1. **VLA Frameworks**
-- OpenVLA architecture
-- Vision-language grounding
-- Action space representation
-- Policy learning for manipulation
+- `frameworks.ipynb`: main notebook.
+- `Robotics.pdf`: companion slides.
+- `requirements.txt`: lightweight notebook dependencies.
+- `media/`: referenced assets.
 
-### 2. **Robotics Simulators**
-- Mujoco integration
-- Roboverse environments
-- Simulation-to-real transfer
-- Benchmarking manipulation tasks
+## Topics
 
-### 3. **Manipulation Tasks**
-- Pick and place
-- Object manipulation
-- Multi-step task execution
-- Generalization to novel objects
+- Robosuite
+- RoboVerse
+- MetaSim
+- LeRobot
+- Practical differences between simulator-heavy and data-centric robotics stacks
 
-## Materials
-- `frameworks.ipynb` - Main tutorial notebook
-- `media/` - Videos and images of robot rollouts
-- `Robotics.pdf` - Comprehensive slides
+## Install
 
-## Installation
+Start with the core notebook dependencies:
+
 ```bash
-conda create -n robotics-tutorial python=3.10
-conda activate robotics-tutorial
-pip install jupyter matplotlib numpy
-pip install mujoco dm_control
-# Follow OpenVLA installation guide for full setup
+pip install -r requirements.txt
 ```
 
-## Running the Tutorial
+Then add whichever framework you want to explore. The notebook includes install snippets, but these ecosystems change often and some require platform-specific setup.
+
+## Run
+
 ```bash
 jupyter notebook frameworks.ipynb
 ```
 
-## Key Resources
+## Validation
+
+The notebook metadata was normalized and the folder-level instructions were cleaned up, but this notebook was not executed end to end locally because the robotics frameworks it references are large, fast-moving, and often simulator-dependent.
+
+## Suggested Use
+
+- Read this as a map of the robotics/VLA landscape.
+- Pick one framework and then move to that project’s official install guide.
+- Treat the LeRobot and simulator sections as a comparison exercise, not a single turnkey environment.
+
+## References
+
 - [OpenVLA](https://openvla.github.io/)
-- [Mujoco](https://mujoco.org/)
-- [Roboverse](https://roboverse.github.io/)
-
-## Learning Objectives
-- Understand VLA architecture
-- Set up robotics simulators
-- Implement manipulation policies
-- Evaluate embodied agents
-
-## Status
-This module is under active development. Expect incremental updates as frameworks evolve.
-
-## Contributing
-Part of the Full-Stack AI working group at Yale University.
+- [Robosuite](https://robosuite.ai/)
+- [RoboVerse](https://roboverse.wiki/)
+- [LeRobot](https://huggingface.co/docs/lerobot)
