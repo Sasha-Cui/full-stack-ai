@@ -1,328 +1,120 @@
-# Full-Stack AI Repository - Progress Summary
+# Full-Stack AI Progress Summary
 
-**Date**: December 31, 2025  
-**Status**: Phase 1 Complete - MWE Cleanup and Documentation
+**Date**: April 30, 2026  
+**Status**: Final publish pass completed
 
----
+This file supersedes the older December 2025 progress summary, which no longer accurately reflected the repository state.
 
-## ✅ Completed Tasks
+## Executive Summary
 
-### Phase 1: MWE Cleanup & Documentation (COMPLETE)
+The repository is now in a publishable state as a public educational resource.
 
-#### 1. PyTorch Tutorial ✅
-- **Fixed**: Import error (`Path1` → `Path`)
-- **Added**: Comprehensive README with installation, usage, troubleshooting
-- **Status**: Ready for use
-- **Location**: `MWEs/pytorch/`
+The biggest change from the old summary is that the repo now distinguishes clearly between:
 
-#### 2. LoRA Tutorial ✅
-- **Reviewed**: Single-cell demo notebook (no errors found)
-- **Added**: Detailed README covering theory, implementation, and biological application
-- **Status**: Ready for use
-- **Location**: `MWEs/LoRA_tutorials/`
+- content that was executed locally,
+- content that was statically reviewed or compiled,
+- content that still depends on external APIs, GPUs, containers, or specialized frameworks.
 
-#### 3. Inference Tutorial ✅
-- **Reviewed**: Tools, GEPA utilities (all working)
-- **Added**: Comprehensive README with API setup, cost analysis, troubleshooting
-- **Added**: `.env.example` for API key configuration
-- **Status**: Ready for use (requires API keys)
-- **Location**: `MWEs/Inference/`
+## What Has Been Fully Solved
 
-#### 4. vLLM + DeepSpeed Tutorial ✅
-- **Fixed**: Hardcoded model paths → configurable (HuggingFace ID, local path, env var)
-- **Added**: Comprehensive README with GPU requirements, configuration options
-- **Status**: Ready for use
-- **Location**: `MWEs/vllm+deepspeed/`
+### Repository-Level Documentation
 
-#### 5. Scaling Laws Tutorial ✅
-- **Reviewed**: Notebook completeness (good condition)
-- **Added**: Comprehensive README covering Kaplan, Chinchilla, practical implications
-- **Status**: Ready for use
-- **Location**: `MWEs/Scaling_Laws/`
+- The top-level [README.md](README.md) was rewritten around a clear learning path, validation table, and honest scope notes.
+- Every major MWE folder now has a focused README and its own `requirements.txt` where appropriate.
+- [MWEs/README.md](MWEs/README.md), [CONTRIBUTORS.md](CONTRIBUTORS.md), [LICENSE](LICENSE), and [requirements-cpu.txt](requirements-cpu.txt) were added.
+- [scripts/validate_examples.py](scripts/validate_examples.py) now provides a repeatable repo validation path.
 
-#### 6. Ray Train Tutorial ✅
-- **Reviewed**: Existing README (already comprehensive)
-- **Status**: Ready for use
-- **Location**: `MWEs/ray_train/`
+### Locally Executed Notebooks
 
-#### 7. VERL Tutorial ✅
-- **Reviewed**: Existing README (detailed setup instructions)
-- **Status**: Ready for use (requires Apptainer/Docker)
-- **Location**: `MWEs/verl/`
+These were executed successfully in a clean Python 3.12 validation environment:
 
-#### 8. LLM Evaluation & Alignment ✅
-- **Added**: README covering evaluation methodologies, lm-eval-harness, RLHF
-- **Status**: Ready for use
-- **Location**: `MWEs/LLM_Evaluation_Alignment/`
+- `MWEs/pytorch/pytorch_tutorial.ipynb`
+- `MWEs/Scaling_Laws/scaling_laws.ipynb`
+- `MWEs/agentic_rl_workshop.ipynb`
+- `MWEs/LoRA_tutorials/lora_single_cell_demo_clean.ipynb`
+- `MWEs/LoRA_tutorials/pytorch_lightning_tutorial.ipynb`
 
-#### 9. Robotics/VLA Tutorial ✅
-- **Added**: README covering OpenVLA, simulators, manipulation tasks
-- **Status**: Under development (see TODO.md)
-- **Location**: `MWEs/Robotics/`
+### Runnable Script Improvements
 
-#### 10. Agentic RL Workshop ✅
-- **Reviewed**: Notebook structure
-- **Status**: Exploratory stage
-- **Location**: `MWEs/agentic_rl_workshop.ipynb`
+- [MWEs/ray_train/train_cifar.py](MWEs/ray_train/train_cifar.py) now has a real `--smoke-test --cpu` path, and that path was run successfully.
+- [MWEs/ray_train/zero_deepspeed.py](MWEs/ray_train/zero_deepspeed.py) and [MWEs/ray_train/model_par.py](MWEs/ray_train/model_par.py) now have clearer CLI behavior and environment guards.
+- [MWEs/Inference/tools.py](MWEs/Inference/tools.py), [MWEs/Inference/GEPA_utils.py](MWEs/Inference/GEPA_utils.py), [MWEs/verl/evaluate_gsm8k.py](MWEs/verl/evaluate_gsm8k.py), and [MWEs/verl/compare_results.py](MWEs/verl/compare_results.py) were tightened and compile cleanly.
 
-### Documentation
+### Notebook Portability
 
-#### Main README ✅
-- **Created**: Professional, comprehensive README with:
-  - Clear overview and goals
-  - Module-by-module breakdown
-  - Installation instructions
-  - Learning paths (beginner/intermediate/advanced)
-  - Repository structure
-  - Contributing guidelines
-  - Citations and acknowledgments
-- **Status**: Complete
-- **Location**: `README.md`
-
-#### Cleanup Plan ✅
-- **Created**: Detailed roadmap document
-- **Includes**: Phase-by-phase breakdown, priority ordering, success metrics
-- **Status**: Complete
-- **Location**: `CLEANUP_PLAN.md`
+- Non-portable notebook kernel names such as local `py39`, `robo`, and editor-specific kernel labels were normalized to `python3`.
+- The LoRA notebooks were fixed for current sparse-matrix behavior in `scanpy` / `scikit-learn`.
 
 ### Tutorial Paper
 
-#### Introduction Section ✅
-- **Enhanced**: Added organization paragraph with module list
-- **Enhanced**: Expanded acknowledgments
-- **Status**: Complete
-- **Location**: `overleaf/sections/introduction.tex`
+- [overleaf/tutorial.tex](overleaf/tutorial.tex) compiles successfully with `latexmk`.
+- The title page no longer uses the placeholder author string.
+- Broken references and LaTeX-breaking Unicode in the DeepSpeed section were fixed.
 
-#### Existing Sections (Reviewed)
-- ✅ `torch-jax-tf.tex` - PyTorch, JAX, TensorFlow fundamentals
-- ✅ `ray.tex` - Ray distributed computing
-- ✅ `lora.tex` - LoRA parameter-efficient fine-tuning
-- ✅ `conclusion.tex` - Conclusion
+## What From The Old Summary Was Solved Later
 
----
+The older summary listed several paper tasks as pending. These are now solved:
 
-## 📋 Remaining Tasks
+- `vllm.tex`, `deepspeed.tex`, and `sft.tex` are integrated in `tutorial.tex`.
+- `inference.tex`, `eval.tex`, and `scaling_laws.tex` exist and are included in the compiled paper.
+- The tutorial now builds end to end.
 
-### Phase 2: Tutorial Paper Enhancement (IN PROGRESS)
+## What Was Not Fully Solved
 
-#### Sections to Integrate into Main Tutorial
-1. **vllm.tex** - Exists but not in `tutorial.tex` main file
-   - Action: Uncomment in tutorial.tex
-   - Status: Pending
+Not every item from the old summary is complete, and the older document overstated readiness in a few places.
 
-2. **deepspeed.tex** - Exists but not in `tutorial.tex` main file
-   - Action: Uncomment in tutorial.tex
-   - Status: Pending
+### Planned Paper Sections Still Missing
 
-3. **sft.tex** - Exists but not in `tutorial.tex` main file
-   - Action: Uncomment in tutorial.tex
-   - Status: Pending
+These planned sections are still commented out in `overleaf/tutorial.tex`:
 
-#### Sections to Write (Currently Commented Out)
-4. **inference.tex** - Comprehensive inference section
-   - Content: API usage, deployment, tools, MCP
-   - Link to: `MWEs/Inference/`
-   - Status: Needs writing
+- `sections/data`
+- `sections/rl`
+- `sections/agents`
 
-5. **data.tex** - Datasets and data handling
-   - Content: HuggingFace datasets, formats, preprocessing
-   - Status: Needs writing
+So the paper is publishable as a substantial draft, but it does **not** yet cover every originally planned topic as a written section.
 
-6. **eval.tex** - Evaluation and benchmarking
-   - Content: lm-eval, inspect-ai, benchmarking methodologies
-   - Link to: `MWEs/LLM_Evaluation_Alignment/`
-   - Status: Needs writing
+### Environment-Dependent MWEs
 
-7. **rl.tex** - Reinforcement learning
-   - Content: RLHF, PPO, VERL
-   - Link to: `MWEs/verl/`
-   - Status: Needs writing
+These areas are publishable and documented, but were not executed end to end in the local validation environment used for the final pass:
 
-#### New Sections Needed
-8. **agents.tex** - Agentic systems
-   - Content: LangChain, ReAct, tools, MCP
-   - Link to: `MWEs/agentic_rl_workshop.ipynb`, `MWEs/Inference/`
-   - Status: Needs writing
+- `MWEs/Inference/` notebook: needs live API keys and network access.
+- `MWEs/LLM_Evaluation_Alignment/`: full `lm-eval` runs depend on chosen backend/model setup.
+- `MWEs/vllm+deepspeed/`: practical serving examples need Linux + NVIDIA GPU.
+- `MWEs/ray_train/zero_deepspeed.py`: needs Linux + CUDA + DeepSpeed.
+- `MWEs/ray_train/model_par.py`: needs multiple CUDA GPUs.
+- `MWEs/verl/`: full PPO workflow needs the VERL container stack.
+- `MWEs/Robotics/`: framework installs are large and platform-sensitive.
 
-9. **scaling_laws.tex** - Scaling laws
-   - Content: Kaplan, Chinchilla, practical implications
-   - Link to: `MWEs/Scaling_Laws/`
-   - Status: Needs writing
+This is now documented clearly. It is no longer being hidden behind blanket claims that everything was fully verified.
 
----
+## Corrections To The December 2025 Summary
 
-## 📊 Statistics
+The older version of this file claimed or implied all of the following:
 
-### Files Created/Modified
-- **MWE READMEs**: 9 new comprehensive READMEs
-- **Main README**: 1 complete rewrite (~400 lines)
-- **Planning Docs**: 2 (CLEANUP_PLAN.md, PROGRESS_SUMMARY.md)
-- **Notebook Fixes**: 2 (PyTorch import, vLLM model path)
-- **Tutorial Sections**: 1 enhanced (introduction.tex)
+- all MWEs were ready for use,
+- the tutorial paper was broadly complete,
+- all planned follow-up paper sections had been finished,
+- the repository was fully production-ready without caveats.
 
-### Coverage
-- **MWEs with READMEs**: 10/10 (100%)
-- **MWEs Reviewed/Fixed**: 10/10 (100%)
-- **Tutorial Sections Reviewed**: 4/4 existing sections (100%)
-- **Tutorial Sections Integrated**: 3/7 pending sections (43%)
-- **Tutorial Sections Written**: 0/9 new sections (0%)
+Those statements are no longer the right way to describe the project.
 
----
+The accurate statement is:
 
-## 🎯 Next Steps (Priority Order)
+- the repository is publishable,
+- the foundational and CPU-safe path is validated,
+- the advanced systems/API/GPU material is documented honestly,
+- some originally planned paper sections remain unwritten.
 
-### High Priority
-1. **Integrate existing .tex files** into tutorial.tex
-   - Uncomment vllm.tex, deepspeed.tex, sft.tex
-   - Test compilation
-   - Estimated time: 30 minutes
+## Final Release Evidence
 
-2. **Write inference.tex section**
-   - Based on MWEs/Inference/ materials
-   - Cover API usage, tools, deployment
-   - Estimated time: 3-4 hours
+The final release pass included:
 
-3. **Write eval.tex section**
-   - Based on MWEs/LLM_Evaluation_Alignment/
-   - Cover benchmarking, lm-eval
-   - Estimated time: 2-3 hours
+- `python scripts/validate_examples.py --execute-notebooks --deep`
+- `python MWEs/ray_train/train_cifar.py --smoke-test --cpu`
+- `latexmk -pdf -interaction=nonstopmode -halt-on-error tutorial.tex`
 
-### Medium Priority
-4. **Write data.tex section**
-   - Datasets, formats, preprocessing
-   - Estimated time: 2-3 hours
+## Bottom Line
 
-5. **Write rl.tex section**
-   - Based on MWEs/verl/
-   - Cover RLHF, PPO
-   - Estimated time: 3-4 hours
+If the question is “is everything from the old progress summary fully solved?”, the answer is **no**.
 
-6. **Write scaling_laws.tex section**
-   - Based on MWEs/Scaling_Laws/
-   - Cover Kaplan, Chinchilla
-   - Estimated time: 2-3 hours
-
-### Low Priority
-7. **Write agents.tex section**
-   - Agentic systems, tools, MCP
-   - Estimated time: 3-4 hours
-
-8. **Final polish**
-   - Proofread all sections
-   - Check consistency
-   - Verify all links
-   - Estimated time: 2-3 hours
-
----
-
-## 📈 Quality Metrics
-
-### Documentation Quality
-- ✅ All MWEs have comprehensive READMEs
-- ✅ Installation instructions clear and tested
-- ✅ Troubleshooting sections included
-- ✅ Learning paths defined
-- ✅ Prerequisites specified
-- ✅ Hardware requirements documented
-
-### Code Quality
-- ✅ Import errors fixed
-- ✅ Hardcoded paths parameterized
-- ✅ Environment variables supported
-- ✅ Error handling improved
-- ✅ Comments and documentation added
-
-### Repository Organization
-- ✅ Clear structure
-- ✅ Consistent naming
-- ✅ Professional README
-- ✅ Contributing guidelines
-- ✅ License information
-- ✅ Citation format
-
----
-
-## 🔄 Workflow Recommendations
-
-### For Immediate Use
-The repository is now ready for:
-1. **Self-study**: All MWEs have clear instructions
-2. **Course material**: Can be used as-is for teaching
-3. **Onboarding**: New researchers can start immediately
-
-### For Complete Tutorial Paper
-To finish the tutorial paper:
-1. Integrate existing sections (30 min)
-2. Write 5-7 new sections (15-25 hours)
-3. Final polish (2-3 hours)
-4. **Total estimated time**: 20-30 hours
-
-### Suggested Approach
-1. **Week 1**: Integrate existing sections, write inference.tex and eval.tex
-2. **Week 2**: Write data.tex, rl.tex, scaling_laws.tex
-3. **Week 3**: Write agents.tex, final polish
-
----
-
-## 🎓 Impact
-
-### What's Been Achieved
-- **Professional repository**: Ready for public release
-- **Comprehensive documentation**: Each MWE is self-contained
-- **Fixed critical bugs**: Import errors, hardcoded paths
-- **Clear learning paths**: Beginner to advanced
-- **Modular structure**: Easy to extend and maintain
-
-### What This Enables
-- **Faster onboarding**: New researchers can start immediately
-- **Self-paced learning**: Clear instructions for each module
-- **Course material**: Can be used for teaching
-- **Research foundation**: Solid base for AI projects
-- **Community building**: Professional materials attract contributors
-
----
-
-## 📝 Notes
-
-### Design Decisions
-1. **Modular READMEs**: Each MWE is self-contained for flexibility
-2. **Multiple installation options**: Conda, pip, Docker for different environments
-3. **Hardware tiers**: Minimum, recommended, optimal for accessibility
-4. **Troubleshooting sections**: Anticipate common issues
-5. **Learning paths**: Cater to different skill levels
-
-### Best Practices Followed
-- Clear, consistent documentation style
-- Practical examples and use cases
-- Cost considerations (API usage, compute)
-- Error handling and edge cases
-- Professional formatting and structure
-
----
-
-## 🙏 Acknowledgments
-
-This cleanup and documentation effort involved:
-- Reviewing 10 MWE folders
-- Creating 9 comprehensive READMEs
-- Fixing 2 critical bugs
-- Writing 2 planning documents
-- Enhancing 1 tutorial section
-- Rewriting the main README
-
-**Total effort**: Approximately 8-10 hours of focused work
-
----
-
-## 📧 Contact
-
-For questions or suggestions about this cleanup:
-- **Email**: sasha.cui@yale.edu
-- **Repository**: https://github.com/sashacui/full-stack-ai
-- **Issues**: https://github.com/sashacui/full-stack-ai/issues
-
----
-
-**Last Updated**: December 31, 2025  
-**Next Review**: After tutorial sections are written
-
+If the question is “is the repository now clean, instructive, honest, and ready to publish?”, the answer is **yes**.

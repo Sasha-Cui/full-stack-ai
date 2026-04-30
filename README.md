@@ -132,6 +132,28 @@ Survey-style notebook for VLA/robotics frameworks such as Robosuite, RoboVerse, 
 
 Model pricing, API availability, provider routing, and some framework install instructions change quickly. Where possible, this repo now points to official docs instead of freezing brittle numbers in place. If you are using the inference or serving materials for real work, check the provider documentation before assuming a model, price, or flag is still current.
 
+## Authors And Contributors
+
+Core working-group authors listed in the original syllabus materials:
+
+- Sasha Cui
+- Quan Le
+- Alexander Mader
+- Will Sanok Dufallo
+
+Module-level contributor attribution for the MWEs is summarized in [CONTRIBUTORS.md](CONTRIBUTORS.md).
+
+## Sponsors And Advisers
+
+The working group website credits the following organizations and advisers:
+
+- **Sponsor**: [Requesty](https://www.requesty.ai), for API credits.
+- **Faculty Adviser**: Prof. John Lafferty, Yale University, Wu Tsai Institute.
+- **Faculty Adviser**: Prof. Jas Sekhon, Google DeepMind.
+- **Technical Support Adviser**: Ping Luo, Yale University, Wu Tsai Institute.
+
+The website also notes that the working group had access to an experimental GPU cluster hosted in The Matrix at the Wu Tsai Institute.
+
 ## Slides And Paper Draft
 
 - `slides/` contains accompanying PDFs.
