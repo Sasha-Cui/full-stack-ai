@@ -139,7 +139,6 @@ Core working-group authors listed in the original syllabus materials:
 - Sasha Cui
 - Quan Le
 - Alexander Mader
-- Will Sanok Dufallo
 
 Module-level contributor attribution for the MWEs is summarized in [CONTRIBUTORS.md](CONTRIBUTORS.md).
 
