@@ -1,19 +1,19 @@
 # Full-Stack AI
 
-Hands-on materials for learning modern AI systems end to end: PyTorch fundamentals, LLM inference, evaluation, LoRA, distributed training, serving, VERL, and introductory agent/robotics topics.
+Hands-on material for learning modern AI systems from fundamentals through inference, evaluation, fine-tuning, serving, distributed training, and early agent/robotics topics.
 
-This repository started as a Yale working-group resource. It has been cleaned up so that the runnable pieces are easier to validate, the folder-level instructions are more honest, and the learning path is clearer for someone studying LLMs and AI agents on their own.
+This repo is intentionally mixed-format: some parts are polished, CPU-safe notebooks; some are API-key-dependent application walkthroughs; some are cluster- or container-oriented systems examples. The goal is not to pretend every folder is equally turnkey. The goal is to make it clear what each folder teaches, what it requires, and how a reader should progress through it.
 
-## What This Repo Contains
+## Who This Repo Is For
 
-- Notebook-first tutorials for core concepts and visual explanations.
-- Minimal Python scripts for distributed-training and evaluation workflows.
-- Slide decks and an Overleaf tutorial draft for longer-form reading.
-- A small validation script so you can check the portable examples quickly.
+- readers who want to move from PyTorch basics into LLM systems work
+- practitioners who understand model APIs but want more systems context
+- working-group participants who want a structured self-study path
+- students who need honest guidance on what is locally runnable versus what is only reviewed or partially validated
 
 ## Start Here
 
-If you want the smoothest local experience, start with the CPU-safe environment and the locally validated notebooks.
+If you want the smoothest local path, use the CPU-friendly environment and validate the notebooks that were intentionally kept portable:
 
 ```bash
 python3 -m venv .venv
@@ -22,17 +22,20 @@ pip install -r requirements-cpu.txt
 python scripts/validate_examples.py --execute-notebooks --deep
 ```
 
-That validates:
+That command path checks Python helper scripts, notebook metadata portability, and executes the CPU-safe notebooks that were validated locally.
 
-- `MWEs/pytorch/pytorch_tutorial.ipynb`
-- `MWEs/Scaling_Laws/scaling_laws.ipynb`
-- `MWEs/agentic_rl_workshop.ipynb`
-- `MWEs/LoRA_tutorials/lora_single_cell_demo_clean.ipynb`
-- `MWEs/LoRA_tutorials/pytorch_lightning_tutorial.ipynb`
+## Environment Tiers
+
+| Tier | What it covers | Typical folders |
+| --- | --- | --- |
+| CPU-safe local | Notebooks and examples validated without GPUs or external services | `MWEs/pytorch/`, `MWEs/Scaling_Laws/`, `MWEs/agentic_rl_workshop.ipynb`, `MWEs/LoRA_tutorials/` |
+| API-key + network | LLM application workflows that depend on providers and fast-moving APIs | `MWEs/Inference/` |
+| Linux + NVIDIA GPU | Serving and distributed training examples | `MWEs/vllm+deepspeed/`, `MWEs/ray_train/` |
+| Cluster / container heavy | More realistic systems workflows that are not beginner-local | `MWEs/verl/`, some robotics ecosystem exploration |
 
 ## Recommended Learning Paths
 
-### 1. Foundations First
+### 1. Foundations-first path
 
 1. `MWEs/pytorch/`
 2. `MWEs/Scaling_Laws/`
@@ -43,14 +46,39 @@ That validates:
 7. `MWEs/ray_train/`
 8. `MWEs/verl/`
 9. `MWEs/agentic_rl_workshop.ipynb`
+10. `MWEs/Robotics/`
 
-### 2. Agent-Focused Path
+### 2. Application / agent path
 
-1. `MWEs/Inference/`
-2. `MWEs/agentic_rl_workshop.ipynb`
-3. `MWEs/LLM_Evaluation_Alignment/`
-4. `MWEs/vllm+deepspeed/`
-5. `MWEs/Robotics/`
+1. `MWEs/pytorch/`
+2. `MWEs/Inference/`
+3. `MWEs/agentic_rl_workshop.ipynb`
+4. `MWEs/LLM_Evaluation_Alignment/`
+5. `MWEs/LoRA_tutorials/`
+6. `MWEs/Robotics/`
+
+### 3. Systems path
+
+1. `MWEs/pytorch/`
+2. `MWEs/Scaling_Laws/`
+3. `MWEs/vllm+deepspeed/`
+4. `MWEs/ray_train/`
+5. `MWEs/verl/`
+
+## Module Index
+
+See [MWEs/README.md](MWEs/README.md) for the detailed module-by-module index. At a high level:
+
+- `MWEs/pytorch/`: PyTorch fundamentals and training mechanics
+- `MWEs/Scaling_Laws/`: scaling-law intuition and compute/data tradeoffs
+- `MWEs/Inference/`: API inference, tool use, MCP, prompting, and GEPA
+- `MWEs/LLM_Evaluation_Alignment/`: evaluation framing and alignment basics
+- `MWEs/LoRA_tutorials/`: parameter-efficient fine-tuning in practice
+- `MWEs/vllm+deepspeed/`: serving and training-systems concepts
+- `MWEs/ray_train/`: distributed-training scripts
+- `MWEs/verl/`: PPO workflow with VERL helper scripts
+- `MWEs/Robotics/`: survey notebook for robotics / VLA frameworks
+- `MWEs/agentic_rl_workshop.ipynb`: workshop-style bridge from application LLMs into agentic and RL-flavored ideas
 
 ## Validation Status
 
@@ -60,14 +88,32 @@ That validates:
 | `MWEs/Scaling_Laws/` | Executed locally | CPU-safe. |
 | `MWEs/agentic_rl_workshop.ipynb` | Executed locally | CPU-safe. |
 | `MWEs/LoRA_tutorials/` | Executed locally | CPU-safe but heavier; downloads PBMC3k data. |
-| `MWEs/Inference/` | Support files compiled | Notebook needs API keys and network access. |
-| `MWEs/LLM_Evaluation_Alignment/` | Reviewed + dependency file added | Full `lm-eval` runs depend on chosen model/backend. |
-| `MWEs/ray_train/train_cifar.py` | Refactored for smoke testing | `--smoke-test --cpu` is the easiest check. |
-| `MWEs/ray_train/model_par.py` | Compiles | Requires Linux + CUDA + multiple GPUs. |
-| `MWEs/ray_train/zero_deepspeed.py` | Compiles | Requires Linux + CUDA + DeepSpeed. |
-| `MWEs/vllm+deepspeed/` | Reviewed | Practical serving cells need Linux + NVIDIA GPU. |
-| `MWEs/verl/` | Helper scripts compiled | Full PPO workflow requires the VERL container stack. |
+| `MWEs/Inference/` | Helper files compile | Notebook requires API keys, network access, and current provider docs. |
+| `MWEs/LLM_Evaluation_Alignment/` | Reviewed | Presentation-heavy; real `lm-eval` execution depends on your chosen backend. |
+| `MWEs/ray_train/train_cifar.py` | Smoke-testable | `--smoke-test --cpu` is the easiest path. |
+| `MWEs/ray_train/model_par.py` | Compiles | Linux + CUDA + multiple GPUs required. |
+| `MWEs/ray_train/zero_deepspeed.py` | Compiles | Linux + CUDA + DeepSpeed required. |
+| `MWEs/vllm+deepspeed/` | Reviewed | Practical cells need Linux and NVIDIA GPUs. |
+| `MWEs/verl/` | Helper scripts compile | Full PPO workflow needs the VERL container stack. |
 | `MWEs/Robotics/` | Reviewed | Framework installs are intentionally optional and heavyweight. |
+
+## Working With The Repo
+
+### Validate what you can first
+
+```bash
+python scripts/validate_examples.py
+python scripts/validate_examples.py --execute-notebooks
+python scripts/validate_examples.py --execute-notebooks --deep
+```
+
+### Install per-folder requirements when leaving the CPU-safe path
+
+Many subfolders carry their own `requirements.txt`. Use the root `requirements-cpu.txt` for the validated local path, then install extra folder-specific dependencies as needed rather than treating the entire repo as one universal environment.
+
+### Check official docs for moving targets
+
+Inference APIs, provider pricing, model availability, vLLM install details, DeepSpeed flags, robotics frameworks, and RL tooling all change quickly. The repo tries to teach patterns and concepts without pretending every versioned instruction will stay current forever.
 
 ## Repository Map
 
@@ -84,53 +130,19 @@ full-stack-ai/
 │   ├── verl/
 │   ├── Robotics/
 │   └── agentic_rl_workshop.ipynb
+├── scripts/
+│   └── validate_examples.py
 ├── overleaf/
 ├── slides/
-├── requirements-cpu.txt
-└── scripts/validate_examples.py
+└── requirements-cpu.txt
 ```
 
-## Module Guide
+## Slides And Long-Form Material
 
-### `MWEs/pytorch/`
+- `slides/` contains slide exports used alongside the working group
+- `overleaf/` contains the tutorial draft and section files
 
-PyTorch fundamentals: tensors, autograd, custom functions, debugging, AMP, and practical training utilities.
-
-### `MWEs/Scaling_Laws/`
-
-Scaling-law intuition for model size, dataset size, compute, and Chinchilla-style tradeoffs.
-
-### `MWEs/Inference/`
-
-API-based inference, tool use, MCP, prompt engineering, and GEPA prompt optimization. This folder is the best starting point for agent-oriented LLM workflows.
-
-### `MWEs/LLM_Evaluation_Alignment/`
-
-Evaluation principles, benchmark design, `lm-eval`, and alignment framing.
-
-### `MWEs/LoRA_tutorials/`
-
-Parameter-efficient fine-tuning with a concrete single-cell biology example and a companion PyTorch Lightning notebook.
-
-### `MWEs/vllm+deepspeed/`
-
-Serving and systems notebooks for PagedAttention, vLLM, and ZeRO-style training concepts.
-
-### `MWEs/ray_train/`
-
-Minimal scripts for data parallelism, ZeRO-3 training, and pipeline parallelism. Best treated as systems examples rather than beginner notebooks.
-
-### `MWEs/verl/`
-
-A container-first walkthrough for PPO on GSM8K with VERL, plus helper scripts for evaluation and result comparison.
-
-### `MWEs/Robotics/`
-
-Survey-style notebook for VLA/robotics frameworks such as Robosuite, RoboVerse, MetaSim, and LeRobot.
-
-## Notes On Moving Targets
-
-Model pricing, API availability, provider routing, and some framework install instructions change quickly. Where possible, this repo now points to official docs instead of freezing brittle numbers in place. If you are using the inference or serving materials for real work, check the provider documentation before assuming a model, price, or flag is still current.
+These are best treated as supporting reading rather than the primary hands-on path.
 
 ## Authors And Contributors
 
@@ -148,38 +160,27 @@ Module-level contributor attribution for the MWEs is summarized in [CONTRIBUTORS
 
 The working group website credits the following organizations and advisers:
 
-- **Sponsor**: [Requesty](https://www.requesty.ai), for API credits.
-- **Faculty Adviser**: Prof. John Lafferty, Yale University, Wu Tsai Institute.
-- **Faculty Adviser**: Prof. Jas Sekhon, Google DeepMind.
-- **Technical Support Adviser**: Ping Luo, Yale University, Wu Tsai Institute.
+- Sponsor: [Requesty](https://www.requesty.ai) for API credits
+- Faculty adviser: Prof. John Lafferty, Yale University, Wu Tsai Institute
+- Faculty adviser: Prof. Jas Sekhon, Google DeepMind
+- Technical support adviser: Ping Luo, Yale University, Wu Tsai Institute
 
-The website also notes that the working group had access to an experimental GPU cluster hosted in The Matrix at the Wu Tsai Institute.
+The group also had access to an experimental GPU cluster hosted in The Matrix at the Wu Tsai Institute.
 
 ## Current Organizers
 
 The current run of the event is being organized by:
 
-- [Dongyu Gong](https://daniel-gong.github.io/) — `dongyu.gong@yale.edu`
-- [Xiaowei Ou](https://www.linkedin.com/in/xiaowei-ou-a7a7951ba/) — `xiaowei.ou@yale.edu`
-
-If you want more information about the current run, contact them directly at their Yale email addresses.
-
-## Slides And Paper Draft
-
-- `slides/` contains accompanying PDFs.
-- `overleaf/` contains the tutorial paper draft and section files.
+- [Dongyu Gong](https://daniel-gong.github.io/) - `dongyu.gong@yale.edu`
+- [Xiaowei Ou](https://www.linkedin.com/in/xiaowei-ou-a7a7951ba/) - `xiaowei.ou@yale.edu`
 
 ## Contributing
 
-Before sending changes, run what you can locally:
+When you update materials in this repo:
 
-```bash
-python scripts/validate_examples.py
-python scripts/validate_examples.py --execute-notebooks
-python scripts/validate_examples.py --execute-notebooks --deep
-```
-
-For GPU-only folders, be explicit in documentation about what was reviewed versus what was executed.
+- be explicit about whether something was executed, smoke-tested, or only reviewed
+- avoid hard-coding brittle provider pricing or temporary install commands when official docs are better
+- prefer folder-level README updates that explain prerequisites, expected outcomes, and validation status
 
 ## License
 
