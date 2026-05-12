@@ -1,0 +1,101 @@
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
+\begin{document}
+\section{Data Curation and Dataset Engineering}
+\label{sec:data}
+
+\subsection{Motivation: Data Is a First-Class Research Artifact}
+\label{sec:data:motivation}
+
+Models are optimized with gradients, but those gradients are entirely determined by the data pipeline. For that reason, modern AI research treats datasets as first-class artifacts rather than as anonymous input files. A strong model pipeline depends not only on architecture and compute, but also on how examples are collected, filtered, deduplicated, documented, and partitioned.
+
+This perspective becomes even more important at scale. As discussed in \Cref{sec:scaling}, performance is sensitive to both model size and data regime. Once models become large enough, data quality and coverage often dominate naive increases in parameter count.
+
+\subsection{Different Kinds of Data Across the Stack}
+\label{sec:data:kinds}
+
+``Data'' is not a single category. Different stages of the full-stack workflow rely on different supervision signals:
+\begin{itemize}
+  \item \textbf{Pretraining corpora:} large heterogeneous text, code, image, or multimodal collections used to learn general representations.
+  \item \textbf{Instruction-tuning data:} prompt-response pairs used for supervised finetuning.
+  \item \textbf{Preference data:} pairwise or ranked outputs used for alignment and preference optimization.
+  \item \textbf{Evaluation data:} held-out tasks, red-team prompts, and benchmark sets used only for measurement.
+\end{itemize}
+
+Conflating these roles is a common mistake. A dataset that is excellent for instruction following may be a poor benchmark, and a benchmark that is useful for evaluation may be too small or too brittle to drive learning.
+
+\subsection{The Core Data Pipeline}
+\label{sec:data:pipeline}
+
+Most serious AI projects implement some version of the following pipeline:
+
+\paragraph{Acquisition.}
+Collect raw data from web crawls, internal documents, APIs, synthetic generation, or human annotation. At this stage, metadata is often more important than the raw bytes: source, timestamp, license, language, and collection mechanism all affect downstream usability.
+
+\paragraph{Normalization.}
+Convert heterogeneous records into a stable schema. For text data this may include Unicode normalization, HTML stripping, chat template conversion, language identification, or separating prompt fields from target fields.
+
+\paragraph{Deduplication.}
+Repeated examples inflate dataset size without adding information and can distort both training and evaluation. Exact deduplication catches byte-for-byte copies, while fuzzy deduplication catches near-duplicates, templated pages, and repeated boilerplate.
+
+\paragraph{Filtering and quality control.}
+Remove corrupted records, formatting errors, low-information text, unsafe content, and examples that violate the project scope. Quality filters can be rule-based, classifier-based, or model-based. The important point is that the filtering policy itself should be versioned and auditable.
+
+\paragraph{Tokenization and packing.}
+For language models, the data is ultimately consumed as tokens. This stage determines effective sequence length, packing efficiency, and sometimes the number of examples that can fit into a training run. Bad packing decisions can waste a significant fraction of the compute budget.
+
+\paragraph{Mixture design.}
+Large training runs usually combine multiple sources. Mixture weights therefore matter: oversampling code, math, tool traces, or multilingual data can meaningfully change behavior. A smaller but carefully weighted mixture often beats a larger unstructured crawl.
+
+\subsection{Designing Post-Training Data}
+\label{sec:data:posttraining}
+
+Post-training datasets should be designed around behaviors, not just topics. Useful questions include:
+\begin{itemize}
+  \item What should the model do when the answer is ambiguous?
+  \item What response format is required downstream?
+  \item When should the model refuse, defer, or call a tool?
+  \item Which failure cases matter enough to include explicitly?
+\end{itemize}
+
+For instruction tuning, the schema must encode the deployment contract clearly. If the eventual system expects structured tool calls, multi-turn dialogue, or citations, the dataset should demonstrate those behaviors directly. Hoping that the model will infer them from weakly related examples is usually a losing strategy.
+
+Synthetic data can help fill capability gaps, but only if it is curated carefully. Automatically generated data is most effective when it is treated as a candidate pool to be filtered, scored, or adversarially reviewed rather than as free perfect supervision.
+
+\subsection{Contamination, Governance, and Documentation}
+\label{sec:data:governance}
+
+Strong dataset engineering also requires operational discipline.
+
+\paragraph{Train/eval separation.}
+Evaluation leakage is one of the easiest ways to obtain misleading results. Once a benchmark or red-team set influences curation decisions, it is no longer a clean measure of generalization.
+
+\paragraph{Licenses and privacy.}
+A technically impressive dataset may still be unusable if it contains material that cannot legally or ethically be redistributed. Provenance, permissions, and personally identifiable information need to be tracked early, not after the model is already trained.
+
+\paragraph{Versioning.}
+Datasets should be versioned as carefully as code. If a model improves, one should be able to answer whether the change came from better hyperparameters, a different base model, or a revised dataset snapshot.
+
+\paragraph{Documentation.}
+At minimum, each dataset or mixture should document source types, intended use, exclusion criteria, known limitations, and validation checks. Without that documentation, later debugging becomes guesswork.
+
+\subsection{A Practical Workflow for Research Groups}
+\label{sec:data:workflow}
+
+For small teams, a pragmatic data workflow is:
+\begin{enumerate}
+  \item Start with a narrow target task and define the evaluation set first.
+  \item Build a small but extremely clean pilot dataset.
+  \item Validate formatting, tokenization, and splits before scaling collection.
+  \item Add automatic filters only after manually inspecting enough examples to understand the real failure modes.
+  \item Keep raw data, cleaned data, and manifests as separate versioned artifacts.
+  \item Revisit the mixture after the first training run rather than assuming the initial weighting was correct.
+\end{enumerate}
+
+This workflow is slower at the beginning, but much faster once experiments become expensive. In practice, many ``model'' problems turn out to be data pipeline problems in disguise.
+
+\subsection{Summary}
+\label{sec:data:summary}
+
+Dataset engineering is one of the highest-leverage skills in full-stack AI. Good data pipelines create reliable gradients, trustworthy evaluations, and reproducible behavior changes. Poor data pipelines do the opposite, no matter how strong the model or how large the cluster.
+\end{document}

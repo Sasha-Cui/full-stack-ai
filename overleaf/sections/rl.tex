@@ -1,0 +1,112 @@
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
+\begin{document}
+\section{Reinforcement Learning for LLM Post-Training}
+\label{sec:rl}
+
+\subsection{Motivation: When Supervision Is Not Enough}
+\label{sec:rl:motivation}
+
+Supervised finetuning works well when high-quality target outputs are available, but many important behaviors are not naturally specified by a single reference answer. Tool use, long-horizon planning, interaction quality, and strategic reasoning often depend on delayed or partially observed feedback. Reinforcement learning (RL) becomes useful in precisely these settings because it allows the model to improve from scalar or comparative signals rather than from fully written demonstrations.
+
+In language-model post-training, RL is best viewed as a way to optimize behavior after SFT has already produced a competent base policy. The model starts from an instruction-following regime and is then nudged toward outcomes that are preferred, more effective, or more robust under interaction.
+
+\subsection{The Basic Objective}
+\label{sec:rl:objective}
+
+Let $\pi_\theta(y \mid x)$ denote a policy that generates a completion $y$ for prompt $x$. A common KL-regularized objective is
+\begin{align}
+  \max_{\pi_\theta}
+  \;
+  \mathbb{E}_{x \sim \mathcal{D},\, y \sim \pi_\theta(\cdot \mid x)}
+  \left[
+    r(x,y)
+    - \beta \, \mathrm{KL}\!\left(\pi_\theta(\cdot \mid x)\,\|\,\pi_{\mathrm{ref}}(\cdot \mid x)\right)
+  \right],
+\end{align}
+where $r(x,y)$ is the reward and $\pi_{\mathrm{ref}}$ is a reference model, often the SFT checkpoint. The KL term prevents the optimized policy from drifting too far from the reference behavior in pursuit of reward.
+
+This formulation captures the core idea behind RLHF~\cite{rlhf}: learn from outcomes while retaining the competence and stability of the supervised model that came before.
+
+\subsection{The Rollout Loop}
+\label{sec:rl:rollouts}
+
+Practical RL for LLMs usually alternates between four stages:
+\begin{enumerate}
+  \item Sample prompts from a dataset or environment.
+  \item Generate rollouts with the current policy.
+  \item Score those rollouts with rewards, preferences, or environment feedback.
+  \item Update the policy using the collected trajectories.
+\end{enumerate}
+
+The key engineering fact is that rollout generation is often the dominant systems cost. This is why the stack discussed earlier in the tutorial matters: fast inference engines help with sampling, distributed trainers help with the update step, and orchestration frameworks coordinate the whole loop.
+
+\subsection{Reward Design for Language and Agentic Tasks}
+\label{sec:rl:rewards}
+
+Reward design is the central research problem in RL post-training. For LLMs, rewards often come from one or more of the following sources:
+\begin{itemize}
+  \item \textbf{Outcome rewards:} Did the final answer solve the task?
+  \item \textbf{Preference rewards:} Which of two completions do humans or a reward model prefer?
+  \item \textbf{Process rewards:} Were intermediate reasoning steps, tool calls, or plans useful?
+  \item \textbf{Environment rewards:} Did the agent actually complete an action sequence in a simulator or software environment?
+\end{itemize}
+
+The accompanying \texttt{MWEs/agentic\_rl\_workshop.ipynb} notebook emphasizes a useful distinction between outcome rewards and process rewards. Outcome rewards are sparse but aligned with end goals. Process rewards are denser and can accelerate learning, especially for tool use, action formatting, and multi-step reasoning. The tradeoff is that badly designed process rewards can teach the model to look busy rather than to succeed.
+
+\subsection{Algorithm Families}
+\label{sec:rl:algorithms}
+
+\paragraph{Online RL.}
+Methods such as PPO remain conceptually important because they optimize the policy on trajectories sampled from the current model. This makes them suitable when exploration matters or when behavior depends on multi-step interaction with tools or environments.
+
+\paragraph{Preference optimization.}
+Methods such as DPO~\cite{dpo} use preference pairs directly and avoid an explicit online rollout loop during optimization. They are often simpler and more stable than full RL, which is why many practical alignment pipelines now use them as a default starting point.
+
+\paragraph{Hybrid pipelines.}
+In practice, teams often combine the two. A model may receive SFT first, then preference optimization, and only then a more expensive online RL stage if interaction quality still needs improvement.
+
+\subsection{Systems Considerations}
+\label{sec:rl:systems}
+
+Full-stack thinking is especially important for RL because the algorithm is inseparable from the infrastructure. A typical modern pipeline looks like this:
+\begin{itemize}
+  \item \textbf{Inference engine:} vLLM or a similar fast decoder for trajectory generation.
+  \item \textbf{Trainer:} DeepSpeed or another distributed training backend for large-policy updates.
+  \item \textbf{Orchestration:} Ray-style scheduling when rollout workers, reward workers, and trainers must run concurrently across multiple machines.
+  \item \textbf{Workflow layer:} Containerized or framework-specific stacks such as the repository's \texttt{MWEs/verl} workflow for end-to-end PPO-style experiments.
+\end{itemize}
+
+This is why reinforcement learning is rarely just an ``algorithm section'' in practice. It is a systems problem with an optimization loop inside it.
+
+\subsection{Common Failure Modes}
+\label{sec:rl:failures}
+
+Typical RL failures for LLMs include:
+\begin{itemize}
+  \item \textbf{Reward hacking:} The policy exploits weaknesses in the reward instead of learning the intended behavior.
+  \item \textbf{Mode collapse:} The model becomes repetitive or narrow because the reward over-favors a small set of outputs.
+  \item \textbf{Over-optimization:} Reward improves while actual task quality or human preference worsens.
+  \item \textbf{Systems bottlenecks:} Sampling or data movement dominates the wall-clock budget, making the training loop impractical.
+\end{itemize}
+
+These issues make offline evaluation and ablation crucial. A reward function should be stress-tested before a large RL run, not after it has consumed the compute budget.
+
+\subsection{When RL Is Worth It}
+\label{sec:rl:when}
+
+RL is usually worth the complexity when:
+\begin{itemize}
+  \item the task requires interaction rather than single-shot completion;
+  \item the best feedback is scalar, comparative, or delayed;
+  \item the model must learn tool strategy rather than just tool syntax;
+  \item the intended behavior depends on long-horizon tradeoffs.
+\end{itemize}
+
+If those conditions do not hold, better SFT data or better evaluation may be a cheaper and more reliable intervention.
+
+\subsection{Summary}
+\label{sec:rl:summary}
+
+Reinforcement learning extends post-training beyond fixed demonstrations. It is most powerful when the problem involves delayed feedback, multi-step interaction, or rewardable behavior that is hard to express as a single gold answer. For full-stack AI researchers, the important lesson is that successful RL depends as much on reward design and systems throughput as on the update rule itself.
+\end{document}

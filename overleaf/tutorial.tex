@@ -4,7 +4,7 @@
 \addbibresource{refs.bib}
 \addbibresource{lora_references.bib} 
 % ----------------- TITLE -----------------
-\title{\textbf{Tutorial: Becoming Full-Stack AI Researchers} \\ \vspace{0.5em} \large Working Draft}
+\title{\textbf{Tutorial: Becoming Full-Stack AI Researchers}}
 \author[1]{\textbf{Sasha Cui}\footnote{\texttt{sasha.cui@yale.edu}}}
 \author[1]{Quan Le\footnote{\texttt{quan.le@yale.edu}}}
 \author[2]{Alexander Mader\footnote{\texttt{alexander.mader@yale.edu}}}
@@ -17,14 +17,15 @@
 \date{Version: \ttt{\today}}
 % ----------------- BEGIN DOCUMENT -----------------
 \begin{document} \maketitle
-% \begin{abstract}
-  % This is the abstract.
-% \end{abstract}
-% \tableofcontents
+\begin{abstract}
+Modern AI research increasingly requires fluency across the full technical stack: data curation, training frameworks, scaling laws, distributed systems, parameter-efficient adaptation, post-training, evaluation, inference, and agentic workflows. This tutorial accompanies the Yale ``Becoming Full-Stack AI Researchers'' working group and organizes those components into an end-to-end roadmap for researchers who want to move beyond isolated model experiments toward robust AI systems. The paper is paired with a public repository of minimal working examples so that readers can reproduce the core workflows locally, understand the systems tradeoffs involved, and extend the material to their own projects.
+\end{abstract}
+\tableofcontents
 % ----------------- MAIN SECTIONS -----------------
 \newpage\subfile{sections/introduction}
 \newpage\subfile{sections/torch-jax-tf}
 \newpage\subfile{sections/scaling_laws}
+\newpage\subfile{sections/data}
 \newpage\subfile{sections/ray}
 \newpage\subfile{sections/vllm}
 \newpage\subfile{sections/deepspeed}
@@ -32,10 +33,8 @@
 \newpage\subfile{sections/sft}
 \newpage\subfile{sections/inference}
 \newpage\subfile{sections/eval}
-% \newpage\subfile{sections/data}       % TODO: Write datasets and data handling section
-% \newpage\subfile{sections/rl}         % TODO: Write reinforcement learning section
-% \newpage\subfile{sections/agents}     % TODO: Write agentic systems section
-
+\newpage\subfile{sections/rl}
+\newpage\subfile{sections/agents}
 \newpage\subfile{sections/conclusion}
 
 
@@ -45,9 +44,7 @@
 \printbibliography 
 \appendix
 \section*{Acknowledgments}
-% We thank members of trustworthy stats at Rutgers University for helpful comments and suggestions throughout the course of this work.
-
-% We thank ... for providing computational budgets for ...
+We thank the contributors to the Yale working group and the accompanying repository for helping shape the tutorial materials. We are especially grateful to Ping Luo, John Lafferty, Linjun Zhang, Anurag Kashyap, Theo Saarinen, and Yuxuan Zhu for feedback on the course content and to the Wu Tsai Institute for supporting the broader effort.
 
 % \section{Proofs}
 % \section{Additional Tables}

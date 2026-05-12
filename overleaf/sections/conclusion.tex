@@ -1,6 +1,42 @@
 \documentclass[class=article,crop=false]{standalone}
 \usepackage{Draft,SashaMacros}
 \begin{document}
-\section{Limitations, Future Works, and Conclusions}
+\section{Limitations, Future Work, and Conclusion}
+\label{sec:conclusion}
 
+\subsection{What This Tutorial Covers and What It Does Not}
+\label{sec:conclusion:limits}
+
+This tutorial is intentionally broad. Its purpose is to help researchers see how the major components of modern AI systems fit together, not to replace the official documentation for every framework discussed. As a result, several important topics are only introduced at a high level:
+\begin{itemize}
+  \item \textbf{Cluster operations:} Production-grade observability, autoscaling, and incident response are deep disciplines in their own right.
+  \item \textbf{Model internals:} We emphasize workflow and systems integration more than architectural novelty.
+  \item \textbf{Safety and governance:} We discuss evaluation and guardrails, but organizational policy and legal review require additional expertise.
+  \item \textbf{Moving targets:} APIs, model availability, and recommended infrastructure evolve quickly.
+\end{itemize}
+
+Readers should therefore treat the manuscript as a roadmap and the repository as a launch point, then move to framework-specific references once they know which layer of the stack they need to go deeper on.
+
+\subsection{Future Directions}
+\label{sec:conclusion:future}
+
+The full-stack AI workflow will likely continue shifting in three directions.
+
+\paragraph{First, stronger post-training loops.}
+The boundary between SFT, preference optimization, and online reinforcement learning is becoming more fluid. Researchers increasingly need to reason about data collection, reward design, and deployment feedback as one continuous loop rather than isolated stages.
+
+\paragraph{Second, more agentic systems.}
+Inference is no longer just single-turn text generation. Tool use, memory, planning, evaluation, and execution environments are becoming first-class concerns. As a result, the practical unit of AI research is moving from the model checkpoint to the whole system wrapped around it.
+
+\paragraph{Third, tighter integration between software and hardware agents.}
+The same ideas that matter for tool-using assistants---structured observations, action spaces, rollback, safety constraints, and reward signals---also appear in robotics and embodied AI. We expect the distinction between language-only agents and embodied agents to narrow over time.
+
+\subsection{Final Remarks}
+\label{sec:conclusion:final}
+
+Becoming a full-stack AI researcher does not mean mastering every tool equally. It means building enough fluency across the stack to diagnose bottlenecks correctly, choose the right abstraction for the problem at hand, and move between modeling, data, systems, and evaluation without losing the thread of the research question.
+
+That is the central message of this tutorial. PyTorch and JAX teach how models are expressed, scaling laws and data work explain why models improve, Ray/vLLM/DeepSpeed show how systems scale, LoRA and SFT make adaptation practical, evaluation and RL sharpen the learning signal, and agentic workflows connect models to real environments. The accompanying repository is designed to make those connections concrete through minimal working examples.
+
+The field will keep changing, but the underlying habit of mind remains stable: strong AI research now requires both scientific judgment and engineering range. Developing that range is the point of becoming full-stack.
 \end{document}

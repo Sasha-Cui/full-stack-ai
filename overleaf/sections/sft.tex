@@ -2,6 +2,117 @@
 \usepackage{Draft,SashaMacros}
 \begin{document}
 \section{Supervised Finetuning}
-  Write your content here...
-  
+\label{sec:sft}
+
+\subsection{Motivation: The Bridge from Pretraining to Usefulness}
+\label{sec:sft:motivation}
+
+Pretraining gives a model broad world knowledge, but it does not automatically make the model helpful for a specific downstream task. Supervised finetuning (SFT) is the standard bridge between a pretrained model and a usable assistant, classifier, code model, or domain expert. In the LLM setting, SFT usually means instruction tuning: adapting a base model on curated prompt-response pairs so that it follows the interaction style, task boundaries, and output format that users actually want.
+
+SFT matters because it is often the cheapest stage that produces a large change in behavior. Before reaching for reinforcement learning, researchers should usually ask whether their problem is really missing a reward-learning stage or whether they simply need higher-quality demonstrations, cleaner formatting, or better task decomposition.
+
+\subsection{Objective and Training Signal}
+\label{sec:sft:objective}
+
+Given an input prompt $x$ and target completion $y = (y_1, \dots, y_T)$, the standard SFT objective minimizes the negative log-likelihood of the target tokens:
+\begin{align}
+  \mathcal{L}_{\mathrm{SFT}}(\theta)
+  =
+  -\mathbb{E}_{(x,y)\sim\mathcal{D}}
+  \left[
+    \sum_{t=1}^{T}
+    m_t \log p_{\theta}(y_t \mid x, y_{<t})
+  \right].
+\end{align}
+Here $m_t$ is an optional mask indicating which tokens should contribute to the loss. In chat finetuning, this mask is often used to exclude system or user tokens so that the model is trained primarily on assistant responses.
+
+This objective is simple, but the surrounding implementation details matter:
+\begin{itemize}
+  \item \textbf{Prompt formatting:} The same data can perform very differently under different chat templates.
+  \item \textbf{Response boundaries:} End-of-turn markers and stop tokens must match inference-time formatting.
+  \item \textbf{Token masking:} Training on the wrong parts of the conversation can distort behavior.
+  \item \textbf{Data balance:} Rare but important behaviors are often drowned out by common patterns.
+\end{itemize}
+
+\subsection{What Good SFT Data Looks Like}
+\label{sec:sft:data}
+
+The most common failure mode in SFT is not the optimizer; it is the dataset. High-quality SFT data usually has four properties:
+\begin{itemize}
+  \item \textbf{Task alignment:} Examples match the tasks the deployment system will actually face.
+  \item \textbf{Consistent formatting:} The prompt, tool, and response schema are stable across examples.
+  \item \textbf{Answer quality:} Demonstrations are not merely correct; they show the level of detail, caution, and style desired at inference time.
+  \item \textbf{Coverage of edge cases:} Refusals, tool errors, ambiguity, and formatting exceptions are represented explicitly.
+\end{itemize}
+
+For instruction tuning, one should think in terms of capabilities rather than raw example counts. A few hundred high-precision examples for an important behavior can be more valuable than tens of thousands of loosely curated pairs. This is especially true when the base model is already strong and the finetuning dataset is intended to reshape behavior rather than teach new world knowledge.
+
+\subsection{Full Finetuning Versus Parameter-Efficient Finetuning}
+\label{sec:sft:peft}
+
+SFT can be implemented either by updating all weights or by using a parameter-efficient method such as LoRA from \Cref{sec:lora}. The choice depends on data scale, hardware budget, and the amount of behavioral change required.
+
+\paragraph{Full finetuning.}
+This approach gives the most flexibility and can be important when the downstream task is far from the base model's existing distribution. The tradeoff is cost: optimizer states, checkpoints, and distributed training complexity all grow with model size.
+
+\paragraph{Parameter-efficient finetuning.}
+LoRA and related methods are the pragmatic default for many research projects. They reduce memory usage, shorten iteration cycles, and make ablation studies easier to run. For many post-training datasets, this is enough to capture the desired behavior while keeping deployment simple.
+
+\subsection{Optimization Choices That Matter}
+\label{sec:sft:optimization}
+
+Several decisions repeatedly determine whether an SFT run succeeds:
+\begin{itemize}
+  \item \textbf{Base model choice:} Start from the smallest model that can plausibly solve the task after adaptation.
+  \item \textbf{Sequence packing:} Pack examples efficiently, but do not mix incompatible conversations in ways that corrupt masking.
+  \item \textbf{Learning rate:} Strong base models are easy to destabilize; aggressive learning rates can erase useful priors.
+  \item \textbf{Batching and accumulation:} Effective batch size matters, especially when instruction data is heterogeneous.
+  \item \textbf{Checkpoint selection:} The final step is not always the best checkpoint; evaluate several points during training.
+\end{itemize}
+
+In practice, many teams run a small pilot with a few thousand examples, verify formatting and masking, and only then scale to the full dataset. This catches most infrastructure errors before expensive distributed runs begin.
+
+\subsection{Evaluation After SFT}
+\label{sec:sft:evaluation}
+
+SFT should be evaluated on more than training loss. A useful evaluation stack includes:
+\begin{itemize}
+  \item \textbf{Held-out task examples:} The primary check for generalization.
+  \item \textbf{Format compliance:} Whether outputs satisfy schemas, tool-call syntax, and stop conditions.
+  \item \textbf{Behavioral regression tests:} Whether safety, refusal behavior, or style worsened.
+  \item \textbf{Human review:} Essential when multiple outputs can be acceptable.
+\end{itemize}
+
+The evaluation section in \Cref{sec:eval} becomes especially important here. SFT often appears successful when judged by loss alone, yet fails on actual task completion, response calibration, or robustness to messy prompts.
+
+\subsection{Common Failure Modes}
+\label{sec:sft:failures}
+
+Typical SFT failures include:
+\begin{itemize}
+  \item \textbf{Template mismatch:} Train-time prompts do not match inference-time prompts.
+  \item \textbf{Overfitting to narrow style:} The model becomes verbose, cautious, or repetitive in undesirable ways.
+  \item \textbf{Catastrophic forgetting:} Useful general capabilities degrade after a narrow finetuning run.
+  \item \textbf{Reward hacking by proxy:} Annotators optimize for superficial patterns that look good in demos but fail in deployment.
+\end{itemize}
+
+These failures are often easier to fix through data redesign than through algorithmic complexity. Better demonstrations, clearer rubrics, and targeted evaluation usually outperform ad hoc optimizer tweaks.
+
+\subsection{Practical Recipe}
+\label{sec:sft:recipe}
+
+A pragmatic SFT workflow is:
+\begin{enumerate}
+  \item Define the target behavior and evaluation set first.
+  \item Normalize the prompt format, stop tokens, and chat template.
+  \item Start with a small high-quality dataset and a short pilot run.
+  \item Decide whether LoRA is sufficient before paying for full finetuning.
+  \item Evaluate on held-out tasks and inspect failures manually.
+  \item Expand the dataset only after the pilot exposes the real bottlenecks.
+\end{enumerate}
+
+\subsection{Summary}
+\label{sec:sft:summary}
+
+Supervised finetuning is the workhorse of modern post-training. It is simple in objective, but demanding in data quality, formatting discipline, and evaluation rigor. For most research groups, mastering SFT provides the fastest path from a generic foundation model to a useful domain-specific system.
 \end{document}

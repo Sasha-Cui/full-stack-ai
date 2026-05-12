@@ -1,0 +1,98 @@
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
+\begin{document}
+\section{Agentic Systems and Embodied Extensions}
+\label{sec:agents}
+
+\subsection{From Single Completions to Closed-Loop Systems}
+\label{sec:agents:motivation}
+
+An LLM becomes an agent when it is placed inside a loop that observes an environment, chooses actions, receives feedback, and updates its internal state or external context over time. This is a shift in problem formulation. The output is no longer just a response string; it is part of a control policy operating over tools, files, browsers, APIs, or even physical robots.
+
+The practical consequence is that model quality alone is no longer sufficient. Agent performance depends on tool interfaces, state management, failure recovery, permissions, and evaluation methodology just as much as on the underlying checkpoint.
+
+\subsection{Core Components of an Agentic Stack}
+\label{sec:agents:components}
+
+Most agent systems contain the following components:
+\begin{itemize}
+  \item \textbf{Policy or planner:} the model that proposes actions or subgoals.
+  \item \textbf{Tool layer:} functions, APIs, browsers, code execution, or databases the model can use.
+  \item \textbf{State and memory:} conversation history, retrieved documents, working notes, or structured task state.
+  \item \textbf{Environment:} the external world in which actions have consequences.
+  \item \textbf{Monitor or critic:} logic for validation, rollback, retries, or escalation.
+\end{itemize}
+
+Researchers often focus on the first item because it is the most visible, but many production failures originate in the others. An excellent planner with weak tooling and poor validation is still a weak agent.
+
+\subsection{Tool Use and Protocol Design}
+\label{sec:agents:tools}
+
+Tool use is the most direct way to extend a model beyond static next-token prediction. The model can search, run code, read private documents, or act on external systems, but only if the interface is explicit enough for the model to use reliably and safe enough for the application to execute.
+
+This is where structured schemas and interoperability matter. The Model Context Protocol (MCP)~\cite{mcp} is one example of an emerging standard for exposing tools and data sources through consistent interfaces. Regardless of the specific protocol, good tool design usually requires:
+\begin{itemize}
+  \item \textbf{Clear argument schemas:} the model should know exactly what fields to supply.
+  \item \textbf{Deterministic outputs when possible:} stable tool behavior simplifies debugging.
+  \item \textbf{Permission boundaries:} some actions must require confirmation or sandboxing.
+  \item \textbf{Machine-readable errors:} agents need structured failure modes, not vague strings.
+\end{itemize}
+
+\subsection{Memory, Retrieval, and Working State}
+\label{sec:agents:memory}
+
+Agentic tasks quickly exceed the usefulness of raw conversation history. Effective systems therefore distinguish between several kinds of context:
+\begin{itemize}
+  \item \textbf{Short-term context:} the immediate dialogue and tool results.
+  \item \textbf{Retrieved context:} documents or facts fetched on demand.
+  \item \textbf{Working memory:} scratchpads, plans, or structured intermediate state.
+  \item \textbf{Long-term memory:} durable user preferences, project metadata, or prior outcomes.
+\end{itemize}
+
+This separation matters because not every piece of information should stay in the prompt forever. Good agents decide what to keep, what to summarize, what to retrieve again, and what to discard.
+
+\subsection{Evaluation and Safety for Agents}
+\label{sec:agents:evaluation}
+
+Agent evaluation is harder than single-turn benchmark evaluation because failures can happen at many layers:
+\begin{itemize}
+  \item the plan may be wrong;
+  \item the tool choice may be wrong;
+  \item the tool call may be malformed;
+  \item the recovery strategy may fail after an error;
+  \item the final answer may hide earlier mistakes.
+\end{itemize}
+
+As a result, agent evaluation should include trajectory-level metrics such as task completion rate, number of tool calls, recovery after failure, and cost per successful task. Safety evaluation should also check whether the agent respects permission boundaries, avoids unsafe actions, and handles ambiguous instructions conservatively.
+
+\subsection{Multi-Agent and Long-Horizon Patterns}
+\label{sec:agents:patterns}
+
+Some tasks are easier when the system is decomposed into roles rather than solved by a single monolithic prompt. Common patterns include:
+\begin{itemize}
+  \item \textbf{Planner-executor:} one model decomposes the task and another carries out steps.
+  \item \textbf{Actor-critic:} one model proposes actions and another critiques them.
+  \item \textbf{Specialist routing:} different models or tools handle code, retrieval, planning, or summarization.
+\end{itemize}
+
+These patterns are useful only when the coordination cost is lower than the quality gain. More agents do not automatically mean better performance.
+
+\subsection{Embodied AI as the Next Extension}
+\label{sec:agents:embodied}
+
+The repository extends the agentic story into robotics through \texttt{MWEs/Robotics}. This is a natural continuation of the same full-stack perspective. In robotics, the ``tools'' are motors, controllers, cameras, and simulators; the ``environment'' is physical; and the cost of mistakes is much higher.
+
+Three practical lessons carry over from software agents to embodied agents:
+\begin{itemize}
+  \item \textbf{Interfaces matter:} observation and action schemas shape what the policy can learn.
+  \item \textbf{Evaluation matters:} simulation, real-world deployment, and benchmark design rarely align perfectly.
+  \item \textbf{Data matters:} trajectory quality, teleoperation data, and task coverage strongly affect policy performance.
+\end{itemize}
+
+Frameworks such as Robosuite, RoboVerse, and LeRobot illustrate different points in this design space: simulator-focused research, multi-simulator benchmarking, and data-centric real-robot workflows. For full-stack researchers, the main insight is that agentic ideas do not stop at text interfaces; they generalize to physical systems with the same need for robust tooling, observability, and feedback loops.
+
+\subsection{Summary}
+\label{sec:agents:summary}
+
+Agentic systems are best understood as model-centered software stacks rather than as prompts with extra steps. They combine inference, tools, memory, evaluation, and environment interaction into a closed loop. Learning to reason about that loop is one of the clearest markers of becoming a full-stack AI researcher.
+\end{document}

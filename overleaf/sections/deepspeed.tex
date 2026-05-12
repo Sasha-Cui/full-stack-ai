@@ -1,210 +1,108 @@
-\documentclass{article}
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath, amssymb}
-\usepackage{hyperref}
-\usepackage{listings}
-\usepackage{geometry}
-\geometry{margin=1in}
-
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
 \begin{document}
 
-\section{DeepSpeed Tutorial}
+\section{DeepSpeed and Memory-Efficient Training}
+\label{sec:deepspeed}
 
-Focus: \textbf{why DeepSpeed}, the core \textbf{ZeRO} idea.
+\subsection{Motivation: The Training Memory Wall}
+\label{sec:deepspeed:motivation}
 
-\subsection{Section 1 — Why DeepSpeed: The GPU Memory Problem in Training}
+Large-model training is often limited by memory before it is limited by raw compute. A model that fits comfortably for inference may still be impossible to train because the training loop must also store gradients, optimizer states, activations, and temporary communication buffers.
 
-\subsubsection{1) Motivation}
-Training large models hits a \textbf{memory wall}. Even with big GPUs... the forward + backward pass stores many tensors simultaneously.
-
-\subsubsection{2) What consumes memory during training}
-\begin{tabular}{l | l | l}
-\hline
-Component & What it is & Notes \\ \hline
-\textbf{Model Parameters} & The trainable weights & $\approx$ 1× model size \\ \hline
-\textbf{Activations} & Intermediates saved for backward & scales with batch×seq×hidden \\ \hline
-\textbf{Gradients} & Produced by backprop & $\approx$ 1× model size \\ \hline
-\textbf{Optimizer States} & For Adam: momentum (m), variance (v) & $\approx$ 2× model size \\ \hline
-\textbf{Temporary Buffers} & Workspace for matmuls/communication & dynamic overhead \\ \hline
+\begin{center}
+\small
+\begin{tabular}{p{0.24\linewidth} p{0.34\linewidth} p{0.27\linewidth}}
+\toprule
+Component & Role during training & Memory intuition \\
+\midrule
+Parameters & Current model weights & About one model copy \\
+Activations & Saved tensors for backpropagation & Scales with depth, batch size, and sequence length \\
+Gradients & Per-parameter derivatives & Roughly one model copy \\
+Optimizer states & Momentum and variance terms for Adam-like optimizers & Often two extra copies \\
+Temporary buffers & Workspace for kernels and communication & Variable overhead \\
+\bottomrule
 \end{tabular}
+\end{center}
 
-With Adam, per-GPU memory can be \textbf{4-6x} the model size.
+For Adam-style optimizers, the optimizer states alone can dominate the memory budget. This is why naive data parallelism does not solve the real problem: each worker still stores nearly all training states locally.
 
-\subsubsection{3) Why naïve data parallel wastes memory}
-Every GPU \textbf{replicates}:
+\subsection{Why Naive Data Parallelism Is Wasteful}
+\label{sec:deepspeed:dp}
+
+In ordinary data parallel training, every GPU keeps a full replica of:
 \begin{itemize}
-  \item model parameters
-  \item gradients
-  \item optimizer states
-\end{itemize}
-So if 4 GPUs train a model with Adam:
-\begin{itemize}
-  \item each one keeps params
-  \item each one keeps grads
-  \item each one keeps Adam’s \texttt{m}, \texttt{v} states
-\end{itemize}
-That means total memory across the cluster is 4× bigger than needed, but \textbf{each individual GPU} still has to fit:
-\begin{itemize}
-  \item parameters
-  \item gradients
-  \item optimizer (2× params)
-\end{itemize}
-So 4 GPUs do \textbf{not} make a single GPU need less memory — they just let you do bigger \textit{data} throughput.
-
-\subsubsection{4) Why model parallel is NOT a good idea}
-Model parallelism = splitting the computation across multiple GPUs instead of a full copy. Each GPU \textbf{computes a subset of layers}.
-\begin{itemize}
-  \item \textbf{Manual partitioning} – Layers or tensors must be explicitly assigned to GPUs.
-  \item \textbf{High communication cost} – GPUs must constantly exchange activations and gradients.
-  \item \textbf{Sequential dependencies} – Layers depend on outputs from previous GPUs, creating idle ``pipeline bubbles.''
-  \item \textbf{Backward complexity} – Gradients must flow across devices, increasing synchronization overhead.
-\end{itemize}
-In short: This reduces both memory \textit{and} compute per GPU, but adds cross-GPU communication for every layer.
-
-\subsubsection{4) DeepSpeed’s core idea}
-\textbf{ZeRO (Zero Redundancy Optimizer)} partitions these states \textbf{across} devices instead of replicating them, cutting memory per GPU roughly by the number of devices.
-
-\subsection{Section 2 — ZeRO: The Heart of DeepSpeed}
-
-\subsubsection{Big idea}
-Don’t replicate all training states on each GPU; \textbf{shard} them. Communication reconstructs what’s needed on the fly.
-
-\subsubsection{ZeRO’s three stages}
-
-\paragraph{Stage 1 — Shard optimizer states}{}
-In optimizers like \textbf{Adam} or \textbf{AdamW}, at step $t$ each trainable parameter $\theta_i$ has \textbf{optimizer states} that keep track of its historical updates — for example:
-$$
-\begin{aligned}
-m_i^t &\leftarrow \beta_1 m_i^{t-1} + (1 - \beta_1) g_i^t, \\
-v_i^t &\leftarrow \beta_2 v_i^{t-1} + (1 - \beta_2) (g_i^t)^2, \\
-\theta_i^t &\leftarrow \theta_i^{t-1} - \alpha \frac{m_i^t / (1 - \beta_1^t)}{\sqrt{v_i^t / (1 - \beta_2^t)} + \epsilon},
-\end{aligned}
-$$
-where
-\begin{enumerate}
-    \item $ m_i $ = first moment (momentum term);
-    \item $ v_i $ = second moment (variance term);
-    \item $ g_i $ = gradient of that parameter;
-    \item $ \theta_i $ = parameter value itself.
-\end{enumerate}
-
-
-Each parameter $ \theta_i $ updates only using its own $ m_i $, $ v_i $, and $ g_i $. In vector form, Adam’s update is applied elementwise:
-$$\theta \leftarrow \theta - \alpha \frac{m}{\sqrt{v} + \epsilon}.$$
-
-So if we split the vector of parameters into chunks, each chunk can be updated entirely on its own — as long as it has access to its local $m$, $v$, and $g$.
-
-Because the optimizer states are independent:
-- We can shard the $m$ and $v$ tensors across GPUs.
-- GPU 0 stores $m,v$ for parameters $[0-25\%]$, GPU 1 for $[25-50\%]$, etc.
-- Each GPU updates its subset of parameters using its own local optimizer states.
-
-\textbf{Naïve DP:}
-\begin{itemize}
-  \item GPU0: params + grads + optimizer
-  \item GPU1: params + grads + optimizer
-  \item GPU2: params + grads + optimizer
-  \item GPU3: params + grads + optimizer
-\end{itemize}
-So 4 copies of everything.
-
-\textbf{ZeRO-1:} \textit{partition} optimizer states across GPUs. Everyone still has:
-\begin{itemize}
-  \item parameters
-  \item gradients
-\end{itemize}
-but \textbf{only one GPU} keeps optimizer states for a subset of params.
-
-\begin{verbatim}
-GPU0: gets optimizer states[0-25%]
-GPU1: gets optimizer states[25-50%]
-GPU2: gets optimizer states[50-75%]
-GPU3: gets optimizer states[75-100%]
-\end{verbatim}
-
-No communication is needed during the optimizer step except possibly for syncing the updated parameters after.
-
-\paragraph{Training Pipeline for ZeRO-1}{}
-\begin{verbatim}
-Forward (parameters duplicated) → Backward (parameters, gradients duplicated) → 
-Local Update (ONLY its shard of optimizer states) → Broadcasting (updated parameters to others)
-\end{verbatim}
-
-\textbf{Summary}
-\begin{itemize}
-  \item Save: optimizer memory
-  \item Comm: low
-  \item Still replicate: params + grads
+  \item the model parameters,
+  \item the gradients, and
+  \item the optimizer states.
 \end{itemize}
 
-\paragraph{Stage 2 — Shard gradients too}{}
-In DP, after backward, each GPU has \textbf{full gradients}. That’s redundant.
+This is easy to reason about and straightforward to implement, but it is memory-inefficient. Adding more GPUs increases aggregate cluster memory, yet it does not proportionally reduce the amount each individual GPU must hold. As a result, some models remain impossible to train even when plenty of total cluster memory exists.
 
-\textbf{Idea:} do a \texttt{reduce-scatter} instead of \texttt{all-reduce}.
+\subsection{The ZeRO Idea}
+\label{sec:deepspeed:zero}
+
+DeepSpeed's central idea is ZeRO: the Zero Redundancy Optimizer. Instead of replicating all training states on every device, ZeRO shards those states across the workers and reconstructs what is needed during computation. The high-level principle is simple:
+\begin{quote}
+Do not store the same training state on every GPU unless the algorithm truly requires it.
+\end{quote}
+
+This idea is powerful because most optimizer states are naturally partitionable. Consider Adam's elementwise update:
+\begin{align}
+  m_i^t &\leftarrow \beta_1 m_i^{t-1} + (1 - \beta_1) g_i^t, \\
+  v_i^t &\leftarrow \beta_2 v_i^{t-1} + (1 - \beta_2) (g_i^t)^2, \\
+  \theta_i^t &\leftarrow \theta_i^{t-1}
+  - \alpha \frac{m_i^t / (1 - \beta_1^t)}
+  {\sqrt{v_i^t / (1 - \beta_2^t)} + \epsilon}.
+\end{align}
+
+Each parameter $\theta_i$ only needs its local optimizer states and its own gradient. That means the optimizer states can be sharded naturally across devices.
+
+\subsection{ZeRO Stages}
+\label{sec:deepspeed:stages}
+
+\paragraph{ZeRO-1: shard optimizer states.}
+Each worker still keeps full parameters and gradients, but only stores optimizer states for a subset of parameters. This removes a large fraction of the memory overhead while requiring relatively modest communication.
+
+\paragraph{ZeRO-2: shard optimizer states and gradients.}
+In naive data parallelism, every worker ends backpropagation with the full gradient tensor. ZeRO-2 replaces the usual all-reduce pattern with reduce-scatter style communication so that the reduced gradients remain partitioned.
 \begin{itemize}
-  \item \texttt{all-reduce}: everyone ends with the full reduced gradient.
-  \item \texttt{reduce-scatter}: the reduction happens, but the result is \textbf{sharded} across GPUs.
+  \item \texttt{all-reduce}: every worker receives the full reduced gradient.
+  \item \texttt{reduce-scatter}: the reduction is performed, but the result stays sharded.
 \end{itemize}
 
-So:
-\begin{itemize}
-  \item gradients are \textbf{partitioned}
-  \item optimizer states are \textbf{partitioned}
-  \item parameters are still \textbf{replicated}
-\end{itemize}
+\paragraph{ZeRO-3: shard parameters as well.}
+The final stage also shards the model parameters themselves. This provides the largest memory savings, but it also introduces the most communication because parameters must be gathered when layers are used and then released again.
 
-\textbf{Memory effect:} you remove another $\approx$ 1× model size per GPU.
-
-\paragraph{Training Pipeline for ZeRO-2}{}
-\begin{verbatim}
-Forward (params replicated) →
-Backward (partial grads produced) →
-Reduce-scatter (partition grads across GPUs) →
-Local Update (ONLY its shard of optimizer states) →
-Broadcasting (updated parameters to others)
-\end{verbatim}
-
-\textbf{Summary}
-\begin{itemize}
-  \item Gradients are partitioned using \textbf{reduce-scatter}.
-  \item \textbf{Save:} optimizer + gradient memory.
-  \item \textbf{Comm:} low.
-\end{itemize}
-
-\paragraph{Stage 3 — Shard parameters (everything)}{}
-\textbf{Idea:} share model parameters
-
-\begin{verbatim}
-GPU0: gets \theta[0-25%]
-GPU1: gets \theta[25-50%]
-GPU2: gets \theta[50-75%]
-GPU3: gets \theta[75-100%]
-\end{verbatim}
-
-So now:
-\begin{itemize}
-  \item parameters are sharded
-  \item gradients are sharded
-  \item optimizer states are sharded
-\end{itemize}
-
-That’s why ZeRO-3 gives the biggest memory win.
-
-\begin{tabular}{l | l | l}
-\hline
-ZeRO Stage & What’s sharded & Memory reduction \\ \hline
-1 & Optimizer states & $\approx$ 2× \\ \hline
-2 & + Gradients & $\approx$ 3× \\ \hline
-3 & + Parameters & about 4-8x \\ \hline
+\begin{center}
+\small
+\begin{tabular}{p{0.14\linewidth} p{0.38\linewidth} p{0.24\linewidth}}
+\toprule
+Stage & What is sharded? & Main effect \\
+\midrule
+Naive DP & Nothing & Simple, but memory-heavy \\
+ZeRO-1 & Optimizer states & First major memory savings \\
+ZeRO-2 & Optimizer states and gradients & Lower backprop footprint \\
+ZeRO-3 & Parameters, gradients, and optimizer states & Maximum memory savings \\
+\bottomrule
 \end{tabular}
+\end{center}
 
-\subsubsection{Illustration (conceptual)}
-\begin{verbatim}
-Naive DP (replicated):   [full][full][full]
-ZeRO-1 (opt sharded):    [P,G, O1][P,G, O2][P,G, O3]
-ZeRO-2 (opt+grad shard): [P, G1,O1][P, G2,O2][P, G3,O3]
-ZeRO-3 (all sharded):    [P1,G1,O1][P2,G2,O2][P3,G3,O3]
-P=params, G=grads, O=optimizer shards
-\end{verbatim}
+\subsection{Why This Matters in Practice}
+\label{sec:deepspeed:practice}
 
+DeepSpeed is useful whenever model size is constrained by training-state memory rather than by pure FLOPs. This is common in:
+\begin{itemize}
+  \item large supervised finetuning runs,
+  \item RL post-training where policy updates are expensive,
+  \item experiments on long contexts or large batch sizes, and
+  \item multi-node settings where memory efficiency determines whether a run is feasible at all.
+\end{itemize}
+
+The repository includes a DeepSpeed example in the Ray training folder and a paired serving/training notebook collection in the vLLM+DeepSpeed folder. These materials should therefore be viewed less as isolated demos and more as building blocks for realistic large-model training workflows.
+
+\subsection{Summary}
+\label{sec:deepspeed:summary}
+
+DeepSpeed's importance comes from a single systems insight: most of the training memory budget is redundant across workers. ZeRO removes that redundancy step by step. For full-stack AI researchers, understanding this design is essential because many practical training decisions boil down to a tradeoff between memory savings, communication overhead, and implementation complexity.
 \end{document}

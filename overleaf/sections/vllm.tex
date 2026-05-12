@@ -1,271 +1,146 @@
-\documentclass{article}
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath, amssymb}
-\usepackage{hyperref}
-\usepackage{listings}
-\usepackage{geometry}
-\geometry{margin=1in}
-
+\documentclass[class=article,crop=false]{standalone}
+\usepackage{Draft,SashaMacros}
 \begin{document}
 
-\section{vLLM}
-
-\begin{verbatim}
-
-|-------------------------------------------------------------------|
-|                OUTER LOOP: RL iterations / epochs                 |
-|                                                                   |
-|   |---------------|      |-------------------|      |---------|   |
-|   |     vLLM      | ---> |  Compute Rewards  | ---> |DeepSpeed|   |
-|   | Generate      |      | (human/RM via     |      | Train   |   |
-|   | Trajectories  |      |  vLLM if needed)  |      | Policy  |   |
-|   |---------------|      |-------------------|      |---------|   |
-|          |                         |                     |        |
-|          |-----------------------------------------------|        |
-|                     (Updated Policy fed back)                     |
-|-------------------------------------------------------------------|
-
-\end{verbatim}
+\section{vLLM and Efficient LLM Serving}
+\label{sec:vllm}
 
 \subsection{Motivation}
-Imagine a reinforcement learning (RL) training loop: we \textbf{generate trajectories}, compute rewards, and \textbf{update the policy} model. \\
-\textbf{vLLM} and \textbf{DeepSpeed} act as \emph{system-level optimizers} for these two core stages. \\
-vLLM accelerates \textbf{trajectory generation} and \textbf{reward inference}, making large-scale sampling highly efficient through optimized GPU memory management (PagedAttention). \\
-DeepSpeed accelerates \textbf{policy training}, enabling distributed, memory-efficient optimization (via ZeRO) for massive models. \\
-Together, they form the backbone of a scalable RL pipeline---vLLM for the inference-heavy side, DeepSpeed for the training-heavy side---both maximizing GPU utilization across the loop.
+\label{sec:vllm:motivation}
 
-\subsection{Section 1---The KV Cache and Why It Matters}
+Modern LLM systems are often bottlenecked not by raw model quality but by serving throughput, latency, and memory efficiency. vLLM addresses this systems problem directly. Its goal is to keep GPUs busy while serving many requests with different prompt lengths and different generation horizons. This makes it useful in both deployment settings and research workflows that require large-scale sampling, such as evaluation, synthetic data generation, and reinforcement learning rollouts.
 
-\subsubsection{Attention Mechanism Formula}
-The general form of the \textbf{scaled dot-product attention} is:
+The most important idea behind vLLM is that efficient decoding requires both:
+\begin{itemize}
+  \item \textbf{fast reuse of past computation}, via the key-value cache; and
+  \item \textbf{good memory management}, so those caches can coexist for many concurrent requests.
+\end{itemize}
+
+\subsection{Why the KV Cache Matters}
+\label{sec:vllm:kv}
+
+The standard scaled dot-product attention operation is
 \[
 \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V,
 \]
-where we have
+where $Q$, $K$, and $V$ denote the query, key, and value tensors. During autoregressive decoding, each new token must attend to all previous tokens in the sequence. Without caching, this means repeatedly recomputing keys and values for the same prefix.
+
+The key-value (KV) cache stores those previously computed keys and values so that each decoding step only computes new entries for the newest token. This changes the practical serving story:
 \begin{itemize}
-  \item $Q$ = Query matrix
-  \item $K$ = Key matrix
-  \item $V$ = Value matrix
-  \item $d_k$ = Dimension of the key vectors (used for scaling)
+  \item \textbf{Without a KV cache:} prefixes are recomputed repeatedly, wasting compute.
+  \item \textbf{With a KV cache:} the model reuses prior work and spends compute on the new token only.
 \end{itemize}
 
-At each decoding step, the model must compute attention between the \emph{current} token(s) and \emph{all past key–value pairs} to determine what context is most relevant.
+\begin{center}
+\small
+\begin{tabular}{p{0.28\linewidth} p{0.30\linewidth} p{0.27\linewidth}}
+\toprule
+Setting & What gets recomputed & Practical consequence \\
+\midrule
+No KV cache & Keys and values for the whole prefix & High latency and poor throughput on long contexts \\
+KV cache enabled & Only the newest keys and values & Much faster incremental decoding \\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\subsubsection{2. Computational Cost Without Caching}
-During \textbf{autoregressive generation}, each new token requires recomputing the attention using \emph{all} previous tokens:
-\[
-\text{Attention}_t = \text{softmax}\left(\frac{Q_t K_{1:t}^T}{\sqrt{d_k}}\right)V_{1:t}.
-\]
-That means for every new token $t$, you rebuild $K_{1:t}$ and $V_{1:t}$. This leads to \textbf{quadratic time complexity} $O(T^2)$ for a sequence of length $T$. This becomes very expensive for long sequences.
+Caching solves the compute problem, but it creates a memory problem: every live request now owns a growing cache in GPU memory.
 
-\begin{verbatim}
-            Generating the 4th token
+\subsection{The Real Serving Problem: Many Requests at Once}
+\label{sec:vllm:serving}
 
-   |-----------------------|
-   | tok 1 | tok 2 | tok 3 |  <-- already processed
-   |-----------------------|
-             ^
-             |  attend to all
-           [ tok 4 ]
-\end{verbatim}
-
-\subsubsection{3. KV Caching: The Core Idea}
-\textbf{KV caching} avoids recomputing $K$ and $V$ for the prefix every step.
+Serving one long sequence is relatively straightforward. Serving thousands of requests is not. Real workloads have three characteristics that make naive implementations inefficient:
 \begin{itemize}
-  \item On the first pass, compute $K$ and $V$ for the prompt/prefix and \textbf{store} them.
-  \item On each new token, compute only the new $Q$, and \textbf{reuse} cached $K,V$.
-\end{itemize}
-This keeps the cost \emph{per new token} closer to $O(T)$ instead of $O(T^2)$.
-
-\subsubsection{4. Why KV Cache Is Not Trivial in Serving}
-Real LLM serving is not a single long sequence:
-\begin{itemize}
-  \item Many requests arrive at different times.
-  \item Each request has a different length.
-  \item Some requests finish, some keep generating.
-\end{itemize}
-So we must keep many KV caches in GPU memory, all growing at different speeds.
-
-\subsubsection{5. Baseline vs With KV Cache}
-\begin{verbatim}
-| Compute Keys/Values | Recomputed each step | Reused from cache |
-\end{verbatim}
-\begin{verbatim}
-| Complexity | $ O(T^2) $ | $ O(T) $ |
-\end{verbatim}
-\begin{verbatim}
-| Speed | Slow for long sequences | Much faster |
-\end{verbatim}
-
-\subsubsection{6. Throughput via Batching, and Its Two Problems}
-To use the GPU efficiently, we \textbf{batch} requests. But in practice:
-\begin{enumerate}
-  \item \textbf{Asynchronous arrivals:} requests don’t start together.
-  \item \textbf{Variable lengths:} prompts/outputs differ; some finish early.
-\end{enumerate}
-This leads to idle threads and poor packing unless we \textbf{rebatch every decoding iteration} (a.k.a. \emph{iteration-level scheduling} / \emph{cellular batching}).
-
-\subsubsection{7. KV Cache Still Has Issues}
-Even with better batching, many concurrent, variable-length requests cause \textbf{GPU memory fragmentation}---turning into a GPU memory management problem that Section 2 addresses.
-
-\subsection{Section 2---PagedAttention: Solving the KV Cache Memory Problem}
-
-\subsubsection{1. Motivation: KV Cache Fixes Computation, but Creates a Memory Challenge}
-KV caching saves compute but each request’s cache \textbf{grows autoregressively} as new tokens are generated. With many concurrent requests, caches grow and finish at different times, stressing GPU memory.
-
-\subsubsection{2. The Naïve Way: Consecutive (Contiguous) Allocation}
-\begin{verbatim}
-|-----------------------------------------------|
-| [Req A (50 tok)] [Req B (30 tok)] [Req C (80)]|
-|-----------------------------------------------|
-\end{verbatim}
-If B finishes early, we get a hole:
-\begin{verbatim}
-|--------------------------------------------------------------|
-| [Req A (50 tok)] [cleared (30 tok)] [Req C (80)] [Req D (60)]|
-|--------------------------------------------------------------|
-\end{verbatim}
-Now A or C may want to grow, but the memory right next to them is not free.
-
-This leads to:
-\begin{itemize}
-  \item fragmentation,
-  \item expensive copies/reallocations,
-  \item or rejecting new/longer requests.
+  \item \textbf{Asynchronous arrivals:} requests appear at different times.
+  \item \textbf{Variable lengths:} prompts and completions have different sizes.
+  \item \textbf{Uneven completion times:} some requests finish immediately while others continue decoding.
 \end{itemize}
 
-\subsubsection{3. The “Cut It Up” Idea---Why It’s Hard}
-Splitting a request’s KV into smaller chunks would pack memory better, \emph{but} then attention has to reconstruct the correct order---hard to track without structure.
-\begin{verbatim}
-|-----------------------------------------------|
-| [Req A (50 tok)] [Req B (30 tok)] [Req C (80)]|
-|-----------------------------------------------|
-\end{verbatim}
-\begin{verbatim}
-|--------------------------------------------------------------------------|
-| [Req A (50 tok)] [Req D part 1 (30 tok)] [Req C (80)] [Req D part 2 (30)]|
-|--------------------------------------------------------------------------|
-\end{verbatim}
+These properties make static batching inefficient and contiguous memory allocation fragile. A practical serving runtime must handle both scheduling and memory layout at the same time.
 
-\subsubsection{4. The Breakthrough: PagedAttention}
-\textbf{PagedAttention} slices GPU memory into \textbf{uniform pages} (small fixed-size blocks, e.g. a fixed number of tokens per page). Each request’s KV cache is a \emph{list of pages}, not one big block.
+\subsection{PagedAttention: The Core vLLM Insight}
+\label{sec:vllm:paged}
 
-\begin{verbatim}
-GPU pages:  P1 | P2 | P3 | P4 | P5 | P6 | ...
-Req A  → P1,P2
-Req B  → P3
-Req C  → P4,P5
-A grows → take P6 (no moves, just add a page)
-\end{verbatim}
+The main systems contribution of vLLM is PagedAttention~\cite{kwon2023efficient}. Instead of storing each request's KV cache in one large contiguous buffer, vLLM splits the cache into fixed-size pages. A request then owns a list of pages rather than one monolithic block.
 
-\subsubsection{5. The Page Table (Indirection)}
-A lightweight \textbf{page table} maps \emph{logical token indices} $\to$ \emph{(page, offset)}:
-\begin{verbatim}
-token 37 → page_table[37//page_size] + (37 % page_size)
-\end{verbatim}
-Attention kernels read K/V via this mapping, so KV can be physically scattered yet \textbf{logically contiguous}.
-
-\subsubsection{6. Benefits}
+This indirection is powerful because it avoids the usual memory-fragmentation problem:
 \begin{itemize}
-  \item Avoids large reallocations when a request grows.
-  \item Reuses freed pages from finished requests.
-  \item Greatly reduces fragmentation.
-  \item Enables many concurrent, variable-length sequences.
+  \item finished requests can release pages immediately;
+  \item long-running requests can acquire new pages without large copies;
+  \item the runtime can repack work implicitly through page allocation rather than through expensive memory movement.
 \end{itemize}
 
-\subsubsection{7. Interaction with Scheduling}
-Because vLLM also does per-iteration / cellular scheduling, PagedAttention makes it feasible to mix:
+Conceptually, the runtime maintains a page table that maps logical token positions to physical memory pages. Attention kernels can then read KV values in logical order even if the underlying storage is physically scattered.
+
+\subsection{Continuous Batching and Scheduling}
+\label{sec:vllm:scheduling}
+
+Memory efficiency alone is not enough; the scheduler must also keep the GPU occupied. vLLM therefore uses continuous batching. Instead of waiting for a fixed batch to finish, it repeatedly mixes:
 \begin{itemize}
-  \item long-running chats,
-  \item short bursts,
-  \item reward-model-style inference
-\end{itemize}
-on the same GPU without running into “I can’t fit that request” issues.
-
-\subsection{Section 3---Inside vLLM: How Paging and Scheduling Work Together}
-
-\subsubsection{1. Goal}
-Keep the GPU highly utilized despite \textbf{asynchronous arrivals} and \textbf{variable-length} requests.
-
-\subsubsection{2. Runtime Pipeline}
-\begin{verbatim}
-User/API → Request Queue → Scheduler (per-iteration) → GPU Workers → PagedAttention → Streams Out
-\end{verbatim}
-
-\begin{itemize}
-  \item \textbf{Request Queue:} holds incoming work
-  \item \textbf{Scheduler:} mixes new and ongoing requests instead of waiting for a full batch; also removes finished sequences (those that reached EOS or max length)
-  \item \textbf{GPU Workers:} run attention kernels; read K/V via page table; write new K/V into free pages
-  \item \textbf{PagedAttention:} provides flexible KV memory without copies
-  \item \textbf{Streaming:} return tokens as they are ready while continuing decoding
+  \item new requests entering the system,
+  \item existing requests that still need another token, and
+  \item requests that can be removed because they have reached a stop condition.
 \end{itemize}
 
-\subsubsection{3. Why This Works}
+This approach improves utilization because the active batch can change at every decoding iteration. It is especially helpful for bursty real-world workloads and for research jobs that mix short prompts with long completions.
+
+\subsection{Why Researchers Care}
+\label{sec:vllm:research}
+
+For full-stack researchers, vLLM is useful in at least four recurring settings:
 \begin{itemize}
-  \item PagedAttention allows \textbf{dynamic batching} without moving memory.
-  \item The scheduler keeps batches full each iteration.
-  \item Memory stays compact and reusable; fewer OOMs and higher throughput.
+  \item \textbf{Benchmarking:} evaluating many prompts quickly.
+  \item \textbf{Synthetic data generation:} sampling large corpora for SFT or preference data.
+  \item \textbf{Agent rollouts:} generating many trajectories for tool-using systems.
+  \item \textbf{RL pipelines:} producing rollouts faster so the trainer is not starved for experience.
 \end{itemize}
 
-\subsubsection{4. Concept Diagram}
+This is why the repository pairs vLLM material with DeepSpeed and VERL. vLLM handles the inference-heavy side of the loop, while the training stack handles the gradient-heavy side.
+
+\subsection{Minimal Example}
+\label{sec:vllm:demo}
+
+\subsubsection{Installation}
 \begin{verbatim}
-|-------------------------------------------------------------------------------|
-| [Incoming Requests] -> Queue -> Scheduler -> GPU Worker -> PagedAttention ->  |
-|                             ^                                   |             |
-|                        Stream tokens back to clients continuously             |
-|-------------------------------------------------------------------------------|
+pip install -U vllm transformers accelerate
 \end{verbatim}
 
-\subsection{Section 4---Minimal “How to Run” Demos}
-
-\subsubsection{4.1 Install}
-\begin{verbatim}
-# Fresh environment recommended
-# If you're in Jupyter, the line below installs into the notebook kernel.
-# If you're in a real project, prefer requirements.txt or pyproject.toml
-%pip install -U vllm transformers accelerate openai
-\end{verbatim}
-
-\subsubsection{4.2 Pick a model}
-\begin{verbatim}
-Qwen3-4B-Instruct-2507
-\end{verbatim}
-
+\subsubsection{Basic Usage}
 \begin{verbatim}
 from vllm import LLM, SamplingParams
 import torch
 
-# Check GPU
 if torch.cuda.is_available():
     print(f"GPU: {torch.cuda.get_device_name(0)}")
 else:
     print("No GPU found, vLLM will be limited")
 
-# Create the model
 llm = LLM(
     model="Qwen/Qwen2-1.5B-Instruct",
     trust_remote_code=True,
 )
 
-# Sampling params
 params = SamplingParams(
     temperature=0.7,
     top_p=0.9,
-    max_tokens=200,
-    skip_special_tokens=False
+    max_tokens=128,
 )
 
 prompts = [
     "Tell me a short story about a robot.",
-    "List three benefits of paged KV cache for LLM serving."
+    "List three benefits of paged KV caching."
 ]
 
 outputs = llm.generate(prompts, params)
 
 for i, output in enumerate(outputs):
-    print(f"\n{'='*50}")
-    response = output.outputs[0].text
-    print(f"Response {i+1}: {response}")
+    print(f"Response {i+1}:")
+    print(output.outputs[0].text)
 \end{verbatim}
 
+The accompanying \texttt{MWEs/vllm+deepspeed/} notebooks go further and place vLLM in the broader serving and post-training context.
+
+\subsection{Summary}
+\label{sec:vllm:summary}
+
+vLLM matters because efficient inference is a systems problem, not just a model problem. KV caching reduces redundant computation, PagedAttention reduces memory fragmentation, and continuous batching keeps the hardware busy. Together, these ideas make large-scale LLM serving and rollout generation practical.
 \end{document}

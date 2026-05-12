@@ -27,7 +27,7 @@ The simplest way to run inference is through API services. Instead of managing i
 
 OpenRouter~\cite{openrouter} unifies multiple model providers into one API service, enabling seamless switching between different models and providers. This abstraction is valuable because:
 \begin{itemize}
-  \item \textbf{Provider diversity:} Access to GPT-5, Claude Sonnet 4, Gemini, DeepSeek, and many others through one interface.
+  \item \textbf{Provider diversity:} Access to major proprietary and open-weight providers through one interface.
   \item \textbf{Automatic failover:} If one provider is down or rate-limited, requests can route to alternatives.
   \item \textbf{Cost optimization:} Easy comparison and switching between providers based on price/performance.
   \item \textbf{Model routing:} Automatic selection of best provider for a given model.
@@ -37,13 +37,14 @@ OpenRouter~\cite{openrouter} unifies multiple model providers into one API servi
 
 Choosing the right model involves multiple tradeoffs:
 
-\paragraph{Cost Structure.} Models are typically priced per million tokens, with separate rates for input and output:
+\paragraph{Cost Structure.} Providers usually charge separately for input and output tokens, but the cheapest per-token option is not always the cheapest system overall. In practice, compare:
 \begin{itemize}
-  \item \textbf{DeepSeek V3.1 (free):} \$0/1M tokens (both input and output)
-  \item \textbf{Gemini 2.5 Flash:} \$0.30/1M input, \$2.50/1M output
-  \item \textbf{GPT-5:} \$5.00/1M input, \$15.00/1M output
-  \item \textbf{Claude Sonnet 4:} \$3.00/1M input, \$15.00/1M output
+  \item \textbf{Frontier models:} strongest quality, but highest latency and per-token cost.
+  \item \textbf{Mid-tier models:} strong quality for most product and research tasks.
+  \item \textbf{Small or distilled models:} lowest latency for routing, extraction, and classification.
+  \item \textbf{Self-hosted open-weight models:} attractive at high volume, but they introduce infrastructure and operations overhead.
 \end{itemize}
+Because pricing changes quickly, always verify the provider's current documentation before budgeting.
 
 \paragraph{Context Length.} Different models support different maximum context windows:
 \begin{itemize}
@@ -55,15 +56,15 @@ Choosing the right model involves multiple tradeoffs:
 \paragraph{Modalities.} Models support different input/output types:
 \begin{itemize}
   \item \textbf{Text-to-text:} Traditional language models
-  \item \textbf{Text+image-to-text:} Vision-language models (e.g., GPT-5, Claude, Gemini)
-  \item \textbf{Text+image-to-text+image:} Multimodal generation (e.g., Gemini 2.5)
+  \item \textbf{Text+image-to-text:} Vision-language models for image understanding
+  \item \textbf{Text+image-to-text+image:} Multimodal systems that can also generate visual outputs
 \end{itemize}
 
 \paragraph{Reasoning Capabilities.} Some models support explicit reasoning modes:
 \begin{itemize}
   \item \textbf{Standard generation:} Direct token-by-token generation
   \item \textbf{Chain-of-thought:} Step-by-step reasoning in output
-  \item \textbf{Reasoning effort control:} Models like GPT-5 allow explicit control over reasoning depth
+  \item \textbf{Reasoning effort control:} Some APIs expose effort or deliberation controls for harder problems
 \end{itemize}
 
 \subsection{Tool Calling and Function Integration}
@@ -103,7 +104,10 @@ The typical tool calling flow follows this pattern:
       "type": "object",
       "properties": {
         "location": {"type": "string"},
-        "units": {"type": "string", "enum": ["celsius", "fahrenheit"]}
+        "units": {
+          "type": "string",
+          "enum": ["celsius", "fahrenheit"]
+        }
       }
     }
   }
@@ -264,4 +268,3 @@ Effective LLM inference requires understanding:
 The inference ecosystem continues to evolve rapidly, with new models, techniques, and best practices emerging regularly. The skills covered in this section provide a foundation for building robust, cost-effective LLM applications.
 
 \end{document}
-
